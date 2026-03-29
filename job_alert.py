@@ -30,6 +30,37 @@ EMAIL_RECEIVER        = os.environ.get("EMAIL_RECEIVER", "akash.shinde@myyahoo.c
 SEEN_JOBS_FILE = "seen_jobs.json"
 
 # ──────────────────────────────────────────────────────
+# KEYWORD PRE-FILTER
+# Only jobs matching these keywords go to AI scorer
+# This avoids burning Groq quota on sales/HR/finance jobs
+# ──────────────────────────────────────────────────────
+INCLUDE_KEYWORDS = [
+    "ai engineer", "ml engineer", "machine learning", "genai", "gen ai",
+    "llm", "nlp", "rag", "langchain", "langgraph", "applied ai",
+    "deep learning", "data scientist", "mlops", "ai platform",
+    "backend engineer", "software engineer", "full stack", "python engineer",
+    "ai/ml", "ai researcher", "prompt engineer", "vector", "embedding",
+    "transformer", "fine-tun", "foundation model", "agentic", "chatbot",
+]
+
+EXCLUDE_KEYWORDS = [
+    "account executive", "account manager", "sales", "marketing",
+    "recruiter", "hr ", "human resources", "finance", "legal",
+    "counsel", "accountant", "designer", "product manager",
+    "operations manager", "business development", "presales",
+    "pre-sales", "customer success", "engagement manager",
+]
+
+def keyword_filter(job: dict) -> bool:
+    text = (job["title"] + " " + job["description"]).lower()
+    # Must match at least one include keyword
+    has_include = any(kw in text for kw in INCLUDE_KEYWORDS)
+    # Must NOT match any exclude keyword in title
+    title_lower = job["title"].lower()
+    has_exclude = any(kw in title_lower for kw in EXCLUDE_KEYWORDS)
+    return has_include and not has_exclude
+
+# ──────────────────────────────────────────────────────
 # YOUR PROFILE — AI uses this for relevance scoring
 # ──────────────────────────────────────────────────────
 MY_PROFILE = """
@@ -352,7 +383,12 @@ def main():
     print(f"📊 {len(unique)} unique jobs to evaluate")
     print(f"🧠 AI scoring...\n")
 
-    for job in unique:
+    # Pre-filter by keywords BEFORE sending to AI (saves Groq quota)
+    filtered = [j for j in unique if keyword_filter(j)]
+    print(f"🔎 After keyword filter: {len(filtered)} jobs (from {len(unique)} total)")
+    print(f"🧠 AI scoring only these {len(filtered)} jobs...\n")
+
+    for job in filtered:
         if not job["link"]:
             continue
         jid = make_id(job["link"])
@@ -370,6 +406,12 @@ def main():
             print(f"⏭️  Skip → {job['title']} @ {job['company']}")
 
         seen.add(jid)
+
+    # Mark ALL unique jobs as seen (not just filtered ones)
+    # This prevents re-evaluating same jobs next hour
+    for job in unique:
+        if job["link"]:
+            seen.add(make_id(job["link"]))
 
     save_seen(seen)
     print(f"\n{'━'*56}")
