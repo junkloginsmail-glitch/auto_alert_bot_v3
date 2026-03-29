@@ -1,123 +1,123 @@
 """
-🤖 AI Job Alert Bot v2 — Lever + Greenhouse (ALL Companies)
+🤖 AI Job Alert Bot v3 — Lever + Greenhouse (ALL Companies)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Author  : Akash Shinde (SpiDo)
 Strategy:
   SOURCE 1 → Google Custom Search API  (finds ANY company, real-time)
   SOURCE 2 → Known company APIs        (Lever + Greenhouse, fast backup)
-Notify  : Telegram (instant) + Email (backup)
+  FILTER   → Smart keyword filter      (no AI needed, runs in 2 seconds)
+Notify  : Telegram (instant)
 Schedule: Every 1 hour via GitHub Actions (FREE)
 """
 
-import os, json, time, hashlib, smtplib, requests, re
+import os, json, time, hashlib, requests, re
 from datetime import datetime
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from groq import Groq
 
 # ──────────────────────────────────────────────────────
 # CONFIG — All values come from GitHub Secrets
 # ──────────────────────────────────────────────────────
-GROQ_API_KEY          = os.environ["GROQ_API_KEY"]
-TELEGRAM_BOT_TOKEN    = os.environ["TELEGRAM_BOT_TOKEN"]
-TELEGRAM_CHAT_ID      = os.environ["TELEGRAM_CHAT_ID"]
-GOOGLE_API_KEY        = os.environ["GOOGLE_API_KEY"]        # Google Custom Search API key
-GOOGLE_CSE_ID         = os.environ["GOOGLE_CSE_ID"]         # Custom Search Engine ID
-EMAIL_SENDER          = os.environ.get("EMAIL_SENDER", "")
-EMAIL_PASSWORD        = os.environ.get("EMAIL_APP_PASSWORD", "")
-EMAIL_RECEIVER        = os.environ.get("EMAIL_RECEIVER", "akash.shinde@myyahoo.com")
+TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+TELEGRAM_CHAT_ID   = os.environ["TELEGRAM_CHAT_ID"]
+GOOGLE_API_KEY     = os.environ["GOOGLE_API_KEY"]
+GOOGLE_CSE_ID      = os.environ["GOOGLE_CSE_ID"]
 
 SEEN_JOBS_FILE = "seen_jobs.json"
 
 # ──────────────────────────────────────────────────────
-# KEYWORD PRE-FILTER
-# Only jobs matching these keywords go to AI scorer
-# This avoids burning Groq quota on sales/HR/finance jobs
+# KEYWORD FILTER
+# Job title must match at least one INCLUDE keyword
+# and must NOT match any EXCLUDE keyword
 # ──────────────────────────────────────────────────────
 INCLUDE_KEYWORDS = [
-    "ai engineer", "ml engineer", "machine learning", "genai", "gen ai",
-    "llm", "nlp", "rag", "langchain", "langgraph", "applied ai",
-    "deep learning", "data scientist", "mlops", "ai platform",
-    "backend engineer", "software engineer", "full stack", "python engineer",
-    "ai/ml", "ai researcher", "prompt engineer", "vector", "embedding",
-    "transformer", "fine-tun", "foundation model", "agentic", "chatbot",
+    "ai engineer", "ml engineer", "machine learning engineer",
+    "genai engineer", "gen ai", "llm engineer", "nlp engineer",
+    "applied ai", "ai platform", "mlops engineer",
+    "deep learning engineer", "data scientist",
+    "python engineer", "backend engineer",
+    "software engineer", "full stack engineer",
+    "ai developer", "ai researcher", "agentic",
 ]
 
 EXCLUDE_KEYWORDS = [
-    "account executive", "account manager", "sales", "marketing",
-    "recruiter", "hr ", "human resources", "finance", "legal",
-    "counsel", "accountant", "designer", "product manager",
-    "operations manager", "business development", "presales",
-    "pre-sales", "customer success", "engagement manager",
+    "account executive", "account manager",
+    "sales", "marketing", "recruiter", "talent",
+    "finance", "legal", "counsel", "accountant",
+    "designer", "product manager", "product owner",
+    "operations manager", "business development",
+    "presales", "pre-sales", "customer success",
+    "engagement manager", "solutions architect",
+    "delivery", "consulting", "director", "vp ",
+    "vice president", "intern", "coordinator",
+    "executive assistant", "program manager",
 ]
+
+INDIA_KEYWORDS = [
+    "india", "bangalore", "bengaluru", "pune", "hyderabad",
+    "mumbai", "chennai", "delhi", "remote", "worldwide",
+    "global", "anywhere",
+]
+
+def is_india_eligible(job: dict) -> bool:
+    """Check if job is open to India / remote"""
+    text = (job["location"] + " " + job["title"] + " " + job["description"]).lower()
+    return any(kw in text for kw in INDIA_KEYWORDS)
 
 def keyword_filter(job: dict) -> bool:
-    text = (job["title"] + " " + job["description"]).lower()
-    # Must match at least one include keyword
-    has_include = any(kw in text for kw in INCLUDE_KEYWORDS)
-    # Must NOT match any exclude keyword in title
-    title_lower = job["title"].lower()
-    has_exclude = any(kw in title_lower for kw in EXCLUDE_KEYWORDS)
-    return has_include and not has_exclude
+    """Fast keyword filter — runs in microseconds"""
+    title = job["title"].lower()
+
+    # Must match an include keyword in title
+    has_include = any(kw in title for kw in INCLUDE_KEYWORDS)
+    if not has_include:
+        return False
+
+    # Must NOT match exclude keywords in title
+    has_exclude = any(kw in title for kw in EXCLUDE_KEYWORDS)
+    if has_exclude:
+        return False
+
+    # Must be India eligible
+    if not is_india_eligible(job):
+        return False
+
+    return True
 
 # ──────────────────────────────────────────────────────
-# YOUR PROFILE — AI uses this for relevance scoring
-# ──────────────────────────────────────────────────────
-MY_PROFILE = """
-Name: Akash Shinde | Experience: 3 years | Location: Pune, India
-Open to: Remote India, Pune onsite, Bangalore onsite, visa sponsorship abroad
-
-Skills: Java (Spring Boot), Python (FastAPI), LLMs, RAG pipelines,
-LangChain, LangGraph, ChromaDB, FAISS, Sentence-Transformers,
-Groq/OpenAI/Anthropic APIs, prompt engineering, LLM evaluation,
-MLOps, AWS, Docker, Kubernetes, Jenkins CI/CD
-
-Target roles: AI Engineer, GenAI Engineer, ML Backend Engineer,
-LLM Engineer, Applied AI Engineer, NLP Engineer
-
-Projects: AI Change Risk Predictor (XGBoost+FAISS+FastAPI),
-RAG Document Intelligence (LangChain+FAISS), AI Code Reviewer (FastAPI+Groq)
-"""
-
-# ──────────────────────────────────────────────────────
-# GOOGLE SEARCH QUERIES
-# These find ANY company on Lever/Greenhouse posting
-# AI/ML jobs for India — even posted 30 minutes ago!
-# ──────────────────────────────────────────────────────
-GOOGLE_QUERIES = [
-    # Lever — India / Remote
-    'site:jobs.lever.co "AI engineer" "India"',
-    'site:jobs.lever.co "GenAI" OR "LLM" "India" OR "remote"',
-    'site:jobs.lever.co "machine learning engineer" "India"',
-    'site:jobs.lever.co "applied AI" OR "NLP engineer" "India"',
-    'site:jobs.lever.co "backend engineer" "AI" OR "LLM" "India"',
-    # Greenhouse — India / Remote
-    'site:job-boards.greenhouse.io "AI engineer" "India"',
-    'site:job-boards.greenhouse.io "GenAI" OR "LLM" "India" OR "remote India"',
-    'site:job-boards.greenhouse.io "machine learning engineer" "India"',
-    'site:job-boards.greenhouse.io "applied AI" "India"',
-    'site:job-boards.greenhouse.io "backend" "LLM" OR "RAG" "India"',
-]
-
-# ──────────────────────────────────────────────────────
-# KNOWN COMPANIES — fast API polling as backup
+# KNOWN COMPANIES LIST
 # ──────────────────────────────────────────────────────
 LEVER_COMPANIES = [
     "databricks", "scale", "huggingface", "anthropic", "mistral",
     "wandb", "cohere", "together", "perplexity", "anyscale",
     "runwayml", "stability", "adept", "emi-labs", "weekdayworks",
     "smart-working-solutions", "boldbusiness", "cognite", "thinkahead",
+    "groq", "inflection", "characterai", "moonshot-ai",
 ]
 
 GREENHOUSE_COMPANIES = [
     "databricks", "coinbase", "particle41llc", "bswiftindia", "builtin",
     "gitlab", "apolloio", "samsara", "clarifai", "boldbusiness",
     "airslate", "asapp-2", "levelai", "pay2dc", "degreed",
-    "clickup", "welocalize",
+    "clickup", "welocalize", "g-p",
 ]
 
 # ──────────────────────────────────────────────────────
-# SEEN JOBS — prevents duplicate Telegram alerts
+# GOOGLE SEARCH QUERIES
+# ──────────────────────────────────────────────────────
+GOOGLE_QUERIES = [
+    'site:jobs.lever.co "AI engineer" "India"',
+    'site:jobs.lever.co "ML engineer" OR "LLM engineer" "India"',
+    'site:jobs.lever.co "machine learning engineer" "India" OR "remote"',
+    'site:jobs.lever.co "GenAI" OR "applied AI" "India"',
+    'site:jobs.lever.co "backend engineer" "AI" "India"',
+    'site:job-boards.greenhouse.io "AI engineer" "India"',
+    'site:job-boards.greenhouse.io "ML engineer" OR "LLM" "India"',
+    'site:job-boards.greenhouse.io "machine learning" "India" OR "remote"',
+    'site:job-boards.greenhouse.io "GenAI" OR "applied AI" "India"',
+    'site:job-boards.greenhouse.io "python engineer" "AI" "India"',
+]
+
+# ──────────────────────────────────────────────────────
+# SEEN JOBS
 # ──────────────────────────────────────────────────────
 def load_seen() -> set:
     if os.path.exists(SEEN_JOBS_FILE):
@@ -133,10 +133,7 @@ def make_id(url: str) -> str:
     return hashlib.md5(url.encode()).hexdigest()
 
 # ──────────────────────────────────────────────────────
-# SOURCE 1 — Google Custom Search API
-# Finds ANY company posting on Lever or Greenhouse
-# 100 free queries/day, each returns 10 results = 1000 jobs/day
-# dateRestrict=d1 means only last 24 hours → catches fresh postings!
+# SOURCE 1 — Google Custom Search
 # ──────────────────────────────────────────────────────
 def scrape_via_google() -> list:
     jobs = []
@@ -151,7 +148,7 @@ def scrape_via_google() -> list:
                     "cx":           GOOGLE_CSE_ID,
                     "q":            query,
                     "num":          10,
-                    "dateRestrict": "d1",  # ← ONLY last 24 hours
+                    "dateRestrict": "d1",
                 },
                 timeout=10
             )
@@ -160,7 +157,7 @@ def scrape_via_google() -> list:
                 continue
 
             items = res.json().get("items", [])
-            print(f"[Google] {len(items):2d} results → {query[:60]}")
+            print(f"[Google] {len(items):2d} results → {query[:55]}")
 
             for item in items:
                 link    = item.get("link", "")
@@ -172,39 +169,35 @@ def scrape_via_google() -> list:
                 if "jobs.lever.co" not in link and "job-boards.greenhouse.io" not in link:
                     continue
 
-                # Clean title
                 title = re.sub(r"\s*[-|]\s*(Lever|Greenhouse).*$", "", title).strip()
 
-                # Extract company name from URL
                 if "jobs.lever.co" in link:
-                    slug    = link.split("jobs.lever.co/")[-1].split("/")[0]
-                    source  = "Lever"
+                    slug   = link.split("jobs.lever.co/")[-1].split("/")[0]
+                    source = "Lever"
                 else:
-                    slug    = link.split("job-boards.greenhouse.io/")[-1].split("/")[0]
-                    source  = "Greenhouse"
-                company = slug.replace("-", " ").title()
+                    slug   = link.split("job-boards.greenhouse.io/")[-1].split("/")[0]
+                    source = "Greenhouse"
 
                 seen_urls.add(link)
                 jobs.append({
                     "title":       title,
-                    "company":     company,
-                    "location":    "Check posting",
+                    "company":     slug.replace("-", " ").title(),
+                    "location":    "India / Remote",
                     "link":        link,
                     "description": snippet,
                     "source":      f"{source} via Google",
-                    "posted_at":   "< 24 hours ago"
+                    "posted_at":   "< 24 hours ago",
                 })
-
             time.sleep(0.5)
 
         except Exception as e:
             print(f"[Google] Error: {e}")
 
-    print(f"[Google] Total: {len(jobs)} unique fresh jobs found")
+    print(f"[Google] Total: {len(jobs)} fresh jobs found")
     return jobs
 
 # ──────────────────────────────────────────────────────
-# SOURCE 2A — Lever Known Companies API
+# SOURCE 2A — Lever Known Companies
 # ──────────────────────────────────────────────────────
 def scrape_lever_known() -> list:
     jobs = []
@@ -223,7 +216,7 @@ def scrape_lever_known() -> list:
                     "company":     company.replace("-", " ").title(),
                     "location":    job.get("categories", {}).get("location", ""),
                     "link":        job.get("hostedUrl", ""),
-                    "description": job.get("descriptionPlain", "")[:600],
+                    "description": job.get("descriptionPlain", "")[:300],
                     "source":      "Lever",
                     "posted_at":   datetime.fromtimestamp(posted/1000).strftime("%d %b %Y") if posted else "N/A"
                 })
@@ -234,7 +227,7 @@ def scrape_lever_known() -> list:
     return jobs
 
 # ──────────────────────────────────────────────────────
-# SOURCE 2B — Greenhouse Known Companies API
+# SOURCE 2B — Greenhouse Known Companies
 # ──────────────────────────────────────────────────────
 def scrape_greenhouse_known() -> list:
     jobs = []
@@ -252,7 +245,7 @@ def scrape_greenhouse_known() -> list:
                     "company":     company.replace("-", " ").title(),
                     "location":    job.get("location", {}).get("name", ""),
                     "link":        job.get("absolute_url", ""),
-                    "description": job.get("content", "")[:600],
+                    "description": job.get("content", "")[:300],
                     "source":      "Greenhouse",
                     "posted_at":   job.get("updated_at", "")[:10]
                 })
@@ -263,41 +256,9 @@ def scrape_greenhouse_known() -> list:
     return jobs
 
 # ──────────────────────────────────────────────────────
-# AI RELEVANCE SCORER — Groq llama-3.3-70b
+# TELEGRAM NOTIFICATION
 # ──────────────────────────────────────────────────────
-def is_relevant(job: dict) -> tuple[bool, str]:
-    try:
-        r = Groq(api_key=GROQ_API_KEY).chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": f"""You are a job relevance evaluator.
-
-CANDIDATE:
-{MY_PROFILE}
-
-JOB:
-Title: {job['title']}
-Company: {job['company']}
-Location: {job['location']}
-Description: {job['description'][:500]}
-
-Is this job relevant to the candidate?
-Check: (1) AI/ML/GenAI/LLM/NLP backend role (2) India/India-remote/worldwide remote (3) 1-6 years exp
-
-Reply ONLY as JSON, no extra text:
-{{"relevant": true/false, "score": 1-10, "reason": "one line"}}"""}],
-            temperature=0.1, max_tokens=120
-        )
-        raw    = re.sub(r"```json|```", "", r.choices[0].message.content).strip()
-        result = json.loads(raw)
-        return result.get("relevant", False) and result.get("score", 0) >= 6, result.get("reason", "")
-    except Exception as e:
-        print(f"[AI] {e}")
-        return False, ""
-
-# ──────────────────────────────────────────────────────
-# TELEGRAM
-# ──────────────────────────────────────────────────────
-def send_telegram(job: dict, reason: str):
+def send_telegram(job: dict):
     icon = "🟡" if "Lever" in job["source"] else "🟢"
     msg  = f"""{icon} *New AI Job Alert!*
 
@@ -307,68 +268,42 @@ def send_telegram(job: dict, reason: str):
 📅 {job['posted_at']}
 🔍 {job['source']}
 
-🤖 _{reason}_
-
 🔗 [Apply Now]({job['link']})"""
+
     try:
         r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={"chat_id": TELEGRAM_CHAT_ID, "text": msg.strip(),
-                  "parse_mode": "Markdown", "disable_web_page_preview": False},
+            json={
+                "chat_id":                  TELEGRAM_CHAT_ID,
+                "text":                     msg.strip(),
+                "parse_mode":               "Markdown",
+                "disable_web_page_preview": False
+            },
             timeout=10
         )
-        print(f"[Telegram] {'✅' if r.status_code==200 else '❌'} {job['title']} @ {job['company']}")
+        status = "✅" if r.status_code == 200 else f"❌ {r.text[:100]}"
+        print(f"[Telegram] {status} — {job['title']} @ {job['company']}")
     except Exception as e:
-        print(f"[Telegram] {e}")
-
-# ──────────────────────────────────────────────────────
-# EMAIL (backup)
-# ──────────────────────────────────────────────────────
-def send_email(job: dict, reason: str):
-    if not EMAIL_SENDER or not EMAIL_PASSWORD:
-        return
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"🤖 {job['title']} @ {job['company']}"
-        msg["From"]    = EMAIL_SENDER
-        msg["To"]      = EMAIL_RECEIVER
-        msg.attach(MIMEText(f"""<html><body style="font-family:sans-serif;max-width:580px;margin:auto;padding:20px">
-          <div style="background:#4F46E5;padding:16px;border-radius:8px 8px 0 0">
-            <h2 style="color:white;margin:0">🤖 New AI Job Alert</h2></div>
-          <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px">
-            <h3>{job['title']}</h3>
-            <p><b>🏢</b> {job['company']}</p>
-            <p><b>📍</b> {job['location']}</p>
-            <p><b>📅</b> {job['posted_at']}</p>
-            <p><b>🔍</b> {job['source']}</p>
-            <p><b>🤖</b> <i>{reason}</i></p><br>
-            <a href="{job['link']}" style="background:#4F46E5;color:white;padding:12px 24px;
-               border-radius:6px;text-decoration:none;font-weight:bold">Apply Now →</a>
-          </div></body></html>""", "html"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
-            s.login(EMAIL_SENDER, EMAIL_PASSWORD)
-            s.sendmail(EMAIL_SENDER, EMAIL_RECEIVER, msg.as_string())
-        print(f"[Email] ✅ {job['title']}")
-    except Exception as e:
-        print(f"[Email] {e}")
+        print(f"[Telegram] Error: {e}")
 
 # ──────────────────────────────────────────────────────
 # MAIN
 # ──────────────────────────────────────────────────────
 def main():
     print(f"\n{'━'*56}")
-    print(f"🤖 AI Job Alert Bot v2 — {datetime.now().strftime('%d %b %Y %H:%M')}")
+    print(f"🤖 AI Job Alert Bot v3 — {datetime.now().strftime('%d %b %Y %H:%M')}")
     print(f"{'━'*56}\n")
 
-    seen = load_seen()
+    seen      = load_seen()
     new_count = 0
+    all_jobs  = []
 
-    # Collect from all 3 sources
-    all_jobs = []
     print("🌐 SOURCE 1: Google Search (ANY company, last 24h)...")
     all_jobs += scrape_via_google()
+
     print("\n📡 SOURCE 2A: Lever Known Companies...")
     all_jobs += scrape_lever_known()
+
     print("\n📡 SOURCE 2B: Greenhouse Known Companies...")
     all_jobs += scrape_greenhouse_known()
 
@@ -380,42 +315,34 @@ def main():
             unique.append(j)
 
     print(f"\n{'━'*56}")
-    print(f"📊 {len(unique)} unique jobs to evaluate")
-    print(f"🧠 AI scoring...\n")
+    print(f"📊 Total unique jobs: {len(unique)}")
 
-    # Pre-filter by keywords BEFORE sending to AI (saves Groq quota)
+    # Fast keyword filter
     filtered = [j for j in unique if keyword_filter(j)]
-    print(f"🔎 After keyword filter: {len(filtered)} jobs (from {len(unique)} total)")
-    print(f"🧠 AI scoring only these {len(filtered)} jobs...\n")
+    print(f"🔎 After keyword filter: {len(filtered)} relevant jobs")
+    print(f"{'━'*56}\n")
 
     for job in filtered:
-        if not job["link"]:
-            continue
         jid = make_id(job["link"])
         if jid in seen:
+            print(f"⏭️  Already alerted: {job['title']} @ {job['company']}")
             continue
 
-        relevant, reason = is_relevant(job)
-        if relevant:
-            print(f"✅ MATCH → {job['title']} @ {job['company']} | {job['location']}")
-            send_telegram(job, reason)
-            send_email(job, reason)
-            new_count += 1
-            time.sleep(1.5)
-        else:
-            print(f"⏭️  Skip → {job['title']} @ {job['company']}")
-
+        print(f"✅ NEW MATCH → {job['title']} @ {job['company']} | {job['location']}")
+        send_telegram(job)
+        new_count += 1
         seen.add(jid)
+        time.sleep(0.5)  # gentle Telegram rate limit
 
-    # Mark ALL unique jobs as seen (not just filtered ones)
-    # This prevents re-evaluating same jobs next hour
+    # Mark ALL jobs seen to avoid re-checking next hour
     for job in unique:
         if job["link"]:
             seen.add(make_id(job["link"]))
 
     save_seen(seen)
+
     print(f"\n{'━'*56}")
-    print(f"✅ Done! {new_count} new alerts sent.")
+    print(f"✅ Done! {new_count} new job alerts sent to Telegram.")
     print(f"{'━'*56}\n")
 
 if __name__ == "__main__":
