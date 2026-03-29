@@ -1,0 +1,46 @@
+name: 🤖 AI Job Alert Bot
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # Every 1 hour, 24/7, FREE on GitHub
+  workflow_dispatch:        # Manual trigger button in GitHub UI
+
+jobs:
+  check-jobs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install dependencies
+        run: pip install requests groq
+
+      - name: 🤖 Run Job Alert Bot
+        env:
+          GROQ_API_KEY:         ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN:   ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:     ${{ secrets.TELEGRAM_CHAT_ID }}
+          GOOGLE_API_KEY:       ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_CSE_ID:        ${{ secrets.GOOGLE_CSE_ID }}
+          EMAIL_SENDER:         ${{ secrets.EMAIL_SENDER }}
+          EMAIL_APP_PASSWORD:   ${{ secrets.EMAIL_APP_PASSWORD }}
+          EMAIL_RECEIVER:       ${{ secrets.EMAIL_RECEIVER }}
+        run: python job_alert.py
+
+      - name: 💾 Save seen_jobs.json (no duplicate alerts)
+        run: |
+          git config user.name  "Job Alert Bot"
+          git config user.email "bot@github.com"
+          git add seen_jobs.json || true
+          git diff --cached --quiet || git commit -m "🤖 seen jobs update [$(date '+%d %b %Y %H:%M')]"
+          git push || true
