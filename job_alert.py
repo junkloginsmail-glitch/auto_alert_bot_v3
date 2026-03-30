@@ -1,31 +1,12 @@
 """
-🤖 AI Job Alert Bot v5 — ALL Companies on Lever + Greenhouse + Ashby
+🤖 AI Job Alert Bot v6 — ALL Companies on Lever + Greenhouse + Ashby
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Author  : Akash Shinde (SpiDo)
-
-HOW IT FINDS EVERY JOB FROM EVERY COMPANY:
-
-  SOURCE 1 → Lever Global API
-             api.lever.co/v0/postings?mode=json
-             → Returns ALL jobs from ALL companies on Lever at once
-             → Thousands of companies, one API call
-
-  SOURCE 2 → Greenhouse Sitemap
-             boards.greenhouse.io/sitemap.xml
-             → Lists ALL company slugs on Greenhouse
-             → We poll each one for new jobs
-
-  SOURCE 3 → Ashby Global Feed
-             jobs.ashbyhq.com (Google indexed)
-             → AI-native startups (LangChain, Modal, Cursor etc)
-
-  SOURCE 4 → Google CSE
-             → Catches anything missed by above
-             → Real-time, last 24h only
-
-  FILTER   → Keyword filter (India + AI/ML roles only)
-  NOTIFY   → Telegram instant ping
-  SCHEDULE → Every 1 hour via GitHub Actions (FREE)
+Author: Akash Shinde (SpiDo)
+Fixes in v6:
+  - Telegram rate limit fixed (2s delay between messages)
+  - Stricter India-only location filter (no USA/Ireland/Poland etc)
+  - Google CSE reduced to 5 queries (saves daily quota)
+  - Lever fallback to company list (global API returned 404)
 """
 
 import os, json, time, hashlib, requests, re, xml.etree.ElementTree as ET
@@ -68,32 +49,44 @@ EXCLUDE_KEYWORDS = [
     ", pk", "- pk", " pk)", " pk]",
 ]
 
-BLOCKED_LOCATIONS = [
-    "pakistan", " pk",
-    "remote - usa", "remote - us", "- usa",
-    "remote - uk", "united kingdom",
-    "remote - canada", "remote - brazil",
-    "remote - australia", "remote - germany",
-    "remote - france", "remote - netherlands",
-    "remote - spain", "remote - singapore",
-    "california", "new york", "san francisco",
-    "seattle", "london", "toronto",
-]
-
-INDIA_LOCATIONS = [
+# ── STRICT India-only locations ───────────────────────
+# Location must contain at least one of these EXACTLY
+INDIA_MUST_HAVE = [
     "india", "bangalore", "bengaluru", "pune", "hyderabad",
     "mumbai", "chennai", "delhi", "noida", "gurgaon",
     "remote", "worldwide", "global", "anywhere",
 ]
 
+# If location contains any of these → BLOCKED even if "remote"
+STRICT_BLOCK = [
+    "pakistan", " pk",
+    "united states", "- usa", "- us", "remote - us",
+    "united kingdom", "- uk", "remote - uk",
+    "canada", "brazil", "australia",
+    "germany", "france", "netherlands", "spain",
+    "ireland", "portugal", "romania", "poland",
+    "estonia", "switzerland", "sweden", "norway",
+    "denmark", "finland", "singapore", "japan",
+    "korea", "mexico", "colombia", "argentina",
+    "sf bay area", "san francisco", "new york",
+    "california", "seattle", "london", "toronto",
+    "emea", "americas", "apac", "latam",
+]
+
 def is_india_eligible(job: dict) -> bool:
     location = job["location"].lower()
     title    = job["title"].lower()
+
+    # Block Pakistan in title
     if any(pk in title for pk in [" pk)", " pk]", ", pk", "- pk"]):
         return False
-    if any(bl in location for bl in BLOCKED_LOCATIONS):
+
+    # Strictly block non-India locations
+    if any(bl in location for bl in STRICT_BLOCK):
         return False
-    return any(kw in location or kw in title for kw in INDIA_LOCATIONS)
+
+    # Must have India signal
+    return any(kw in location or kw in title for kw in INDIA_MUST_HAVE)
 
 def keyword_filter(job: dict) -> bool:
     title = job["title"].lower()
@@ -123,112 +116,96 @@ def make_id(url: str) -> str:
 
 def make_job(title, company, location, link, desc, source, posted="Recent"):
     return {"title": title, "company": company, "location": location,
-            "link": link, "description": desc[:300], "source": source,
+            "link": link, "description": str(desc)[:300], "source": source,
             "posted_at": posted}
 
 # ──────────────────────────────────────────────────────
-# SOURCE 1 — Lever Global API (ALL companies at once)
-# api.lever.co/v0/postings?mode=json returns every single
-# job posted on Lever platform across ALL companies
+# SOURCE 1 — Lever (known AI companies)
+# Global API returned 404, using company-specific API
 # ──────────────────────────────────────────────────────
-def scrape_lever_global() -> list:
-    jobs  = []
-    limit = 100
-    skip  = 0
+LEVER_COMPANIES = [
+    # AI-first
+    "databricks", "scale", "huggingface", "anthropic", "mistral",
+    "wandb", "cohere", "together", "perplexity",
+    "runwayml", "stability", "adept", "emi-labs", "weekdayworks",
+    "smart-working-solutions", "boldbusiness", "cognite", "thinkahead",
+    # Indian AI companies
+    "sarvam-ai", "krutrim", "yellowai", "haptik", "uniphore",
+    "observe-ai", "sprinklr", "freshworks", "browserstack",
+    "hasura", "postman", "chargebee", "clevertap",
+    # Global companies hiring India
+    "servicenow", "pagerduty", "elastic", "mongodb",
+    "confluent", "harness", "singlestore", "airbyte",
+]
 
-    print("[Lever Global] Fetching all jobs...")
-    while True:
+def scrape_lever() -> list:
+    jobs = []
+    for company in LEVER_COMPANIES:
         try:
             res = requests.get(
-                "https://api.lever.co/v0/postings",
-                params={"mode": "json", "limit": limit, "skip": skip},
-                headers=HEADERS, timeout=15
+                f"https://api.lever.co/v0/postings/{company}?mode=json&limit=50",
+                headers=HEADERS, timeout=8
             )
             if res.status_code != 200:
-                print(f"[Lever Global] HTTP {res.status_code}")
-                break
-
-            batch = res.json()
-            if not batch:
-                break
-
-            for job in batch:
+                continue
+            for job in res.json():
                 posted = job.get("createdAt", 0)
-                link   = job.get("hostedUrl", "")
-                company = link.split("jobs.lever.co/")[-1].split("/")[0].replace("-"," ").title() if "jobs.lever.co" in link else "Unknown"
                 jobs.append(make_job(
                     title   = job.get("text", ""),
-                    company = company,
+                    company = company.replace("-", " ").title(),
                     location= job.get("categories", {}).get("location", ""),
-                    link    = link,
+                    link    = job.get("hostedUrl", ""),
                     desc    = job.get("descriptionPlain", ""),
-                    source  = "Lever Global",
+                    source  = "Lever",
                     posted  = datetime.fromtimestamp(posted/1000).strftime("%d %b %Y") if posted else "N/A"
                 ))
-
-            skip += limit
-            if len(batch) < limit:
-                break
-            time.sleep(0.5)
-
         except Exception as e:
-            print(f"[Lever Global] Error: {e}")
-            break
-
-    print(f"[Lever Global] {len(jobs)} total jobs from ALL Lever companies")
+            print(f"[Lever] {company}: {e}")
+        time.sleep(0.2)
+    print(f"[Lever] {len(jobs)} jobs fetched")
     return jobs
 
 # ──────────────────────────────────────────────────────
 # SOURCE 2 — Greenhouse Sitemap (ALL companies)
-# boards.greenhouse.io/sitemap.xml lists every single
-# company that uses Greenhouse ATS
-# We parse it → get all company slugs → poll each one
 # ──────────────────────────────────────────────────────
-def get_greenhouse_companies_from_sitemap() -> list:
-    """Parse Greenhouse sitemap to get ALL company slugs"""
+def get_all_greenhouse_slugs() -> list:
     try:
         res = requests.get(
             "https://boards.greenhouse.io/sitemap.xml",
             headers=HEADERS, timeout=15
         )
         if res.status_code != 200:
-            print(f"[GH Sitemap] HTTP {res.status_code}")
+            print(f"[GH Sitemap] HTTP {res.status_code} — using fallback")
             return []
 
-        root = ET.fromstring(res.content)
-        ns   = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        root  = ET.fromstring(res.content)
+        ns    = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         slugs = []
-
         for loc in root.findall(".//sm:loc", ns):
             url = loc.text or ""
-            # URLs look like: https://boards.greenhouse.io/companyslug
             if url.startswith("https://boards.greenhouse.io/") and url.count("/") == 3:
                 slug = url.rstrip("/").split("/")[-1]
-                if slug and slug not in ["sitemap.xml", ""]:
+                if slug:
                     slugs.append(slug)
-
-        print(f"[GH Sitemap] Found {len(slugs)} companies on Greenhouse")
+        print(f"[GH Sitemap] Found {len(slugs)} companies")
         return slugs
-
     except Exception as e:
         print(f"[GH Sitemap] Error: {e}")
         return []
 
-def scrape_greenhouse_all() -> list:
-    """Poll ALL Greenhouse companies from sitemap"""
-    jobs    = []
-    slugs   = get_greenhouse_companies_from_sitemap()
+GREENHOUSE_FALLBACK = [
+    "databricks", "coinbase", "particle41llc", "bswiftindia", "builtin",
+    "gitlab", "apolloio", "samsara", "clarifai", "airslate",
+    "asapp-2", "levelai", "degreed", "clickup", "welocalize",
+    "stripe", "twilio", "datadog", "cloudflare", "notion",
+    "figma", "linear", "vercel", "openai", "scale-ai",
+    "glean", "moveworks", "cresta", "forethought",
+    "snorkel-ai", "roboflow", "encord", "labelbox",
+]
 
-    if not slugs:
-        print("[GH] Sitemap failed — using fallback list")
-        slugs = [
-            "databricks", "coinbase", "particle41llc", "bswiftindia",
-            "gitlab", "apolloio", "samsara", "clarifai", "airslate",
-            "asapp-2", "levelai", "degreed", "clickup", "welocalize",
-            "stripe", "twilio", "datadog", "cloudflare", "notion",
-            "figma", "linear", "vercel", "openai", "scale-ai",
-            "glean", "moveworks", "cresta", "forethought", "rasa",
-        ]
+def scrape_greenhouse_all() -> list:
+    jobs  = []
+    slugs = get_all_greenhouse_slugs() or GREENHOUSE_FALLBACK
 
     print(f"[GH] Polling {len(slugs)} companies...")
     for i, slug in enumerate(slugs):
@@ -239,7 +216,6 @@ def scrape_greenhouse_all() -> list:
             )
             if res.status_code != 200:
                 continue
-
             for job in res.json().get("jobs", []):
                 jobs.append(make_job(
                     title   = job.get("title", ""),
@@ -250,35 +226,28 @@ def scrape_greenhouse_all() -> list:
                     source  = "Greenhouse",
                     posted  = job.get("updated_at", "")[:10]
                 ))
-
         except Exception:
             pass
+        if (i + 1) % 100 == 0:
+            print(f"[GH] {i+1}/{len(slugs)} done, {len(jobs)} jobs so far...")
+        time.sleep(0.1)
 
-        # Progress log every 50 companies
-        if (i + 1) % 50 == 0:
-            print(f"[GH] Processed {i+1}/{len(slugs)} companies, {len(jobs)} jobs so far...")
-
-        time.sleep(0.1)  # polite rate limit
-
-    print(f"[GH] {len(jobs)} total jobs from ALL Greenhouse companies")
+    print(f"[GH] {len(jobs)} total jobs")
     return jobs
 
 # ──────────────────────────────────────────────────────
 # SOURCE 3 — Ashby (AI-native startups)
-# Ashby is used by most modern AI startups
 # ──────────────────────────────────────────────────────
 ASHBY_COMPANIES = [
     "anyscale", "together-ai", "modal", "replicate",
     "langchain", "llamaindex", "weaviate", "qdrant",
-    "cohere", "adept", "fixie", "dust", "sweep",
-    "codeium", "cursor", "cognition", "imbue",
-    "sakana-ai", "mistral", "luma-ai", "pika",
+    "cohere", "adept", "sweep", "codeium", "cursor",
+    "cognition", "imbue", "luma-ai", "pika",
     "arcee-ai", "predibase", "baseten", "bentoml",
-    "lightning-ai", "scale-ai", "labelbox", "encord",
-    "roboflow", "snorkel-ai", "weights-biases",
-    "dspy-ai", "guardrails-ai", "vellum-ai",
-    "portkey-ai", "helicone", "braintrust-data",
-    "unstructured", "chroma", "pinecone", "milvus",
+    "lightning-ai", "labelbox", "encord", "roboflow",
+    "snorkel-ai", "dspy-ai", "guardrails-ai",
+    "unstructured", "chroma", "pinecone",
+    "helicone", "braintrust-data", "portkey-ai",
 ]
 
 def scrape_ashby() -> list:
@@ -308,28 +277,15 @@ def scrape_ashby() -> list:
     return jobs
 
 # ──────────────────────────────────────────────────────
-# SOURCE 4 — Google CSE (catches anything missed)
-# Searches Lever + Greenhouse for last 24h postings
+# SOURCE 4 — Google CSE (only 5 queries to save quota)
+# 100 free queries/day — previous runs used them all up
 # ──────────────────────────────────────────────────────
 GOOGLE_QUERIES = [
     "AI engineer India",
-    "ML engineer India",
-    "LLM engineer India",
     "machine learning engineer India",
+    "LLM engineer India remote",
     "GenAI engineer India",
     "applied AI engineer India",
-    "NLP engineer India",
-    "backend engineer AI India",
-    "python engineer AI India",
-    "MLOps engineer India",
-    "software engineer AI India",
-    "full stack engineer AI India",
-    "AI engineer remote India",
-    "machine learning engineer remote India",
-    "LLM engineer remote",
-    "applied AI engineer remote",
-    "backend AI engineer India",
-    "software engineer LLM India",
 ]
 
 def scrape_via_google() -> list:
@@ -344,56 +300,47 @@ def scrape_via_google() -> list:
                         "q": query, "num": 10, "dateRestrict": "d1"},
                 timeout=10
             )
+            if res.status_code == 429:
+                print(f"[Google] Quota exceeded for today — skipping remaining")
+                break
             if res.status_code != 200:
-                print(f"[Google] HTTP {res.status_code} → {query[:40]}: {res.text[:100]}")
+                print(f"[Google] HTTP {res.status_code} → {query}")
                 continue
 
             items = res.json().get("items", [])
-            print(f"[Google] {len(items):2d} results → {query[:50]}")
+            print(f"[Google] {len(items):2d} results → {query}")
 
             for item in items:
                 link    = item.get("link", "")
                 title   = item.get("title", "")
                 snippet = item.get("snippet", "")
-
                 if not link or link in seen_urls:
                     continue
                 if "jobs.lever.co" not in link and "job-boards.greenhouse.io" not in link and "jobs.ashbyhq.com" not in link:
                     continue
-
                 title = re.sub(r"\s*[-|]\s*(Lever|Greenhouse|Ashby).*$", "", title).strip()
-
                 if "jobs.lever.co" in link:
-                    slug, source = link.split("jobs.lever.co/")[-1].split("/")[0], "Lever"
+                    slug, src = link.split("jobs.lever.co/")[-1].split("/")[0], "Lever"
                 elif "job-boards.greenhouse.io" in link:
-                    slug, source = link.split("job-boards.greenhouse.io/")[-1].split("/")[0], "Greenhouse"
+                    slug, src = link.split("job-boards.greenhouse.io/")[-1].split("/")[0], "Greenhouse"
                 else:
-                    slug, source = link.split("jobs.ashbyhq.com/")[-1].split("/")[0], "Ashby"
-
+                    slug, src = link.split("jobs.ashbyhq.com/")[-1].split("/")[0], "Ashby"
                 seen_urls.add(link)
-                jobs.append(make_job(
-                    title   = title,
-                    company = slug.replace("-", " ").title(),
-                    location= "India / Remote",
-                    link    = link,
-                    desc    = snippet,
-                    source  = f"{source} via Google",
-                    posted  = "< 24 hours ago"
-                ))
-            time.sleep(0.5)
-
+                jobs.append(make_job(title, slug.replace("-"," ").title(),
+                                     "India / Remote", link, snippet,
+                                     f"{src} via Google", "< 24 hours ago"))
+            time.sleep(1)
         except Exception as e:
             print(f"[Google] Error: {e}")
 
-    print(f"[Google] {len(jobs)} fresh jobs found")
+    print(f"[Google] {len(jobs)} fresh jobs")
     return jobs
 
 # ──────────────────────────────────────────────────────
-# TELEGRAM
+# TELEGRAM — 2 second delay to avoid rate limits
 # ──────────────────────────────────────────────────────
 def send_telegram(job: dict):
-    icons = {"Lever Global": "🟡", "Greenhouse": "🟢",
-             "Ashby": "🔵", "Google": "🌐"}
+    icons = {"Lever": "🟡", "Greenhouse": "🟢", "Ashby": "🔵", "Google": "🌐"}
     icon  = next((v for k, v in icons.items() if k in job["source"]), "📌")
 
     msg = f"""{icon} *New AI Job Alert!*
@@ -411,43 +358,45 @@ def send_telegram(job: dict):
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
             json={"chat_id": TELEGRAM_CHAT_ID, "text": msg.strip(),
                   "parse_mode": "Markdown", "disable_web_page_preview": False},
-            timeout=10
+            timeout=15
         )
         print(f"[Telegram] {'✅' if r.status_code==200 else '❌'} — {job['title']} @ {job['company']}")
+        time.sleep(2)  # ← 2 second delay — prevents Telegram rate limit
     except Exception as e:
         print(f"[Telegram] Error: {e}")
+        time.sleep(3)  # extra wait on error
 
 # ──────────────────────────────────────────────────────
 # MAIN
 # ──────────────────────────────────────────────────────
 def main():
     print(f"\n{'━'*60}")
-    print(f"🤖 AI Job Alert Bot v5 — {datetime.now().strftime('%d %b %Y %H:%M')}")
+    print(f"🤖 AI Job Alert Bot v6 — {datetime.now().strftime('%d %b %Y %H:%M')}")
     print(f"{'━'*60}\n")
 
     seen     = load_seen()
     all_jobs = []
 
-    print("🌐 SOURCE 1: Lever Global API (ALL companies on Lever)...")
-    all_jobs += scrape_lever_global()
+    print("🟡 SOURCE 1: Lever (known AI companies)...")
+    all_jobs += scrape_lever()
 
-    print("\n🌐 SOURCE 2: Greenhouse Sitemap (ALL companies on Greenhouse)...")
+    print("\n🟢 SOURCE 2: Greenhouse Sitemap (ALL companies)...")
     all_jobs += scrape_greenhouse_all()
 
     print("\n🔵 SOURCE 3: Ashby (AI-native startups)...")
     all_jobs += scrape_ashby()
 
-    print("\n🔍 SOURCE 4: Google CSE (last 24h fresh postings)...")
+    print("\n🌐 SOURCE 4: Google CSE (last 24h)...")
     all_jobs += scrape_via_google()
 
-    # Deduplicate by URL
+    # Deduplicate
     seen_urls, unique = set(), []
     for j in all_jobs:
         if j["link"] and j["link"] not in seen_urls:
             seen_urls.add(j["link"])
             unique.append(j)
 
-    # Filter
+    # Filter — strict India only
     filtered  = [j for j in unique if keyword_filter(j)]
     new_count = 0
 
@@ -465,9 +414,8 @@ def main():
         send_telegram(job)
         new_count += 1
         seen.add(jid)
-        time.sleep(0.5)
 
-    # Mark all as seen
+    # Mark all seen
     for job in unique:
         if job["link"]:
             seen.add(make_id(job["link"]))
