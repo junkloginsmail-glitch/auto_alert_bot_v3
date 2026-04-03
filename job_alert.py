@@ -1,12 +1,14 @@
 """
-🤖 AI Job Alert Bot v6 — ALL Companies on Lever + Greenhouse + Ashby
+🤖 AI Job Alert Bot v7 — ALL Companies on Lever + Greenhouse + Ashby
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Author: Akash Shinde (SpiDo)
-Fixes in v6:
-  - Telegram rate limit fixed (2s delay between messages)
-  - Stricter India-only location filter (no USA/Ireland/Poland etc)
-  - Google CSE reduced to 5 queries (saves daily quota)
-  - Lever fallback to company list (global API returned 404)
+
+Fixes in v7:
+  - Relaxed location filter (was blocking valid India remote jobs)
+  - Added debug logging to see what's being filtered out
+  - Google quota saved (only 5 queries per run)
+  - Telegram 2s delay to avoid rate limits
+  - Node.js warning fixed in workflow
 """
 
 import os, json, time, hashlib, requests, re, xml.etree.ElementTree as ET
@@ -26,76 +28,105 @@ HEADERS        = {"User-Agent": "Mozilla/5.0"}
 # ──────────────────────────────────────────────────────
 # FILTERS
 # ──────────────────────────────────────────────────────
+
+# Title must have at least one of these
 INCLUDE_KEYWORDS = [
-    "ai engineer", "ml engineer", "machine learning engineer",
-    "genai engineer", "llm engineer", "nlp engineer",
-    "applied ai engineer", "ai platform engineer", "mlops engineer",
-    "deep learning engineer", "python engineer",
-    "backend engineer", "software engineer", "full stack engineer",
-    "ai developer", "agentic ai", "data scientist",
+    "ai engineer", "ml engineer", "machine learning",
+    "genai", "gen ai", "llm", "nlp engineer",
+    "applied ai", "ai platform", "mlops",
+    "deep learning", "python engineer",
+    "backend engineer", "software engineer",
+    "full stack engineer", "fullstack engineer",
+    "ai developer", "agentic", "data scientist",
+    "rag", "langchain", "llm engineer",
 ]
 
-EXCLUDE_KEYWORDS = [
-    "account executive", "account manager", "sales", "marketing",
-    "recruiter", "talent", "finance", "legal", "counsel", "accountant",
-    "designer", "product manager", "product owner", "operations manager",
-    "business development", "presales", "pre-sales", "customer success",
-    "engagement manager", "solutions architect", "delivery", "consulting",
-    "director", "vp ", "vice president", "intern", "coordinator",
-    "executive assistant", "program manager", "scrum master",
-    "staff software", "senior staff", "sr. staff", "sr staff",
-    "principal engineer", "principal software", "principal data",
-    "distinguished", "fellow", "head of", "chief ",
-    ", pk", "- pk", " pk)", " pk]",
+# Title must NOT have any of these
+EXCLUDE_TITLE = [
+    "account executive", "account manager",
+    "sales representative", "sales manager",
+    "marketing manager", "recruiter", "talent acquisition",
+    "finance manager", "legal counsel", "accountant",
+    "ux designer", "ui designer", "product designer",
+    "product manager", "product owner",
+    "business development", "presales", "pre-sales",
+    "customer success manager", "engagement manager",
+    "executive assistant", "program coordinator",
+    "scrum master", "agile coach",
+    # Too senior
+    "principal engineer", "distinguished engineer",
+    "head of engineering", "vp of engineering",
+    "chief technology", "chief ai",
 ]
 
-# ── STRICT India-only locations ───────────────────────
-# Location must contain at least one of these EXACTLY
-INDIA_MUST_HAVE = [
+# ── Location Logic ────────────────────────────────────
+# APPROACH: Allow if location contains India signal
+# OR if location is empty/worldwide/remote (assume could be India)
+# BLOCK only if location explicitly says another country
+
+INDIA_SIGNALS = [
     "india", "bangalore", "bengaluru", "pune", "hyderabad",
     "mumbai", "chennai", "delhi", "noida", "gurgaon",
-    "remote", "worldwide", "global", "anywhere",
+    "kolkata", "ahmedabad", "kochi", "trivandrum",
+    "remote", "worldwide", "global", "anywhere", "",  # empty = unknown = allow
 ]
 
-# If location contains any of these → BLOCKED even if "remote"
-STRICT_BLOCK = [
-    "pakistan", " pk",
-    "united states", "- usa", "- us", "remote - us",
-    "united kingdom", "- uk", "remote - uk",
-    "canada", "brazil", "australia",
-    "germany", "france", "netherlands", "spain",
-    "ireland", "portugal", "romania", "poland",
-    "estonia", "switzerland", "sweden", "norway",
-    "denmark", "finland", "singapore", "japan",
-    "korea", "mexico", "colombia", "argentina",
-    "sf bay area", "san francisco", "new york",
-    "california", "seattle", "london", "toronto",
-    "emea", "americas", "apac", "latam",
+# Only block if location is VERY specific to another country
+HARD_BLOCK_LOCATIONS = [
+    "pakistan", "lahore", "karachi", "islamabad",
+    "san francisco, ca", "new york, ny", "seattle, wa",
+    "austin, tx", "boston, ma", "los angeles",
+    "london, uk", "london, england",
+    "toronto, on", "vancouver, bc",
+    "berlin, germany", "munich, germany",
+    "paris, france", "amsterdam, netherlands",
+    "singapore only", "tokyo, japan",
 ]
 
 def is_india_eligible(job: dict) -> bool:
-    location = job["location"].lower()
+    location = job["location"].lower().strip()
     title    = job["title"].lower()
 
-    # Block Pakistan in title
+    # Hard block Pakistan in title
     if any(pk in title for pk in [" pk)", " pk]", ", pk", "- pk"]):
         return False
 
-    # Strictly block non-India locations
-    if any(bl in location for bl in STRICT_BLOCK):
+    # Hard block specific non-India cities
+    if any(bl in location for bl in HARD_BLOCK_LOCATIONS):
         return False
 
-    # Must have India signal
-    return any(kw in location or kw in title for kw in INDIA_MUST_HAVE)
+    # If location contains any India signal → allow
+    if any(sig in location for sig in INDIA_SIGNALS):
+        return True
+
+    # If location is a vague "remote" without country → allow
+    if "remote" in location and not any(
+        country in location for country in [
+            "usa", "uk", "canada", "germany", "france",
+            "australia", "brazil", "ireland", "poland",
+            "spain", "portugal", "netherlands",
+        ]
+    ):
+        return True
+
+    # Otherwise block
+    return False
 
 def keyword_filter(job: dict) -> bool:
     title = job["title"].lower()
+
+    # Must match include keyword
     if not any(kw in title for kw in INCLUDE_KEYWORDS):
         return False
-    if any(kw in title for kw in EXCLUDE_KEYWORDS):
+
+    # Must NOT match exclude keyword
+    if any(kw in title for kw in EXCLUDE_TITLE):
         return False
+
+    # Must be India eligible
     if not is_india_eligible(job):
         return False
+
     return True
 
 # ──────────────────────────────────────────────────────
@@ -115,27 +146,30 @@ def make_id(url: str) -> str:
     return hashlib.md5(url.encode()).hexdigest()
 
 def make_job(title, company, location, link, desc, source, posted="Recent"):
-    return {"title": title, "company": company, "location": location,
-            "link": link, "description": str(desc)[:300], "source": source,
-            "posted_at": posted}
+    return {
+        "title": title, "company": company, "location": location,
+        "link": link, "description": str(desc)[:300],
+        "source": source, "posted_at": posted
+    }
 
 # ──────────────────────────────────────────────────────
-# SOURCE 1 — Lever (known AI companies)
-# Global API returned 404, using company-specific API
+# SOURCE 1 — Lever (company-specific API)
 # ──────────────────────────────────────────────────────
 LEVER_COMPANIES = [
-    # AI-first
+    # AI-first global
     "databricks", "scale", "huggingface", "anthropic", "mistral",
     "wandb", "cohere", "together", "perplexity",
-    "runwayml", "stability", "adept", "emi-labs", "weekdayworks",
-    "smart-working-solutions", "boldbusiness", "cognite", "thinkahead",
-    # Indian AI companies
-    "sarvam-ai", "krutrim", "yellowai", "haptik", "uniphore",
-    "observe-ai", "sprinklr", "freshworks", "browserstack",
+    "runwayml", "stability", "adept",
+    # India-focused
+    "weekdayworks", "smart-working-solutions", "boldbusiness",
+    "cognite", "thinkahead", "emi-labs",
+    # Indian startups & tech
+    "yellowai", "haptik", "uniphore", "observe-ai",
+    "sprinklr", "freshworks", "browserstack",
     "hasura", "postman", "chargebee", "clevertap",
-    # Global companies hiring India
-    "servicenow", "pagerduty", "elastic", "mongodb",
-    "confluent", "harness", "singlestore", "airbyte",
+    # Global hiring India
+    "servicenow", "pagerduty", "elastic",
+    "confluent", "harness", "singlestore",
 ]
 
 def scrape_lever() -> list:
@@ -143,12 +177,15 @@ def scrape_lever() -> list:
     for company in LEVER_COMPANIES:
         try:
             res = requests.get(
-                f"https://api.lever.co/v0/postings/{company}?mode=json&limit=50",
-                headers=HEADERS, timeout=8
+                f"https://api.lever.co/v0/postings/{company}?mode=json&limit=100",
+                headers=HEADERS, timeout=10
             )
             if res.status_code != 200:
                 continue
-            for job in res.json():
+            data = res.json()
+            if not isinstance(data, list):
+                continue
+            for job in data:
                 posted = job.get("createdAt", 0)
                 jobs.append(make_job(
                     title   = job.get("text", ""),
@@ -161,58 +198,59 @@ def scrape_lever() -> list:
                 ))
         except Exception as e:
             print(f"[Lever] {company}: {e}")
-        time.sleep(0.2)
-    print(f"[Lever] {len(jobs)} jobs fetched")
+        time.sleep(0.3)
+    print(f"[Lever] {len(jobs)} jobs fetched from {len(LEVER_COMPANIES)} companies")
     return jobs
 
 # ──────────────────────────────────────────────────────
-# SOURCE 2 — Greenhouse Sitemap (ALL companies)
+# SOURCE 2 — Greenhouse Sitemap → ALL companies
 # ──────────────────────────────────────────────────────
-def get_all_greenhouse_slugs() -> list:
-    try:
-        res = requests.get(
-            "https://boards.greenhouse.io/sitemap.xml",
-            headers=HEADERS, timeout=15
-        )
-        if res.status_code != 200:
-            print(f"[GH Sitemap] HTTP {res.status_code} — using fallback")
-            return []
-
-        root  = ET.fromstring(res.content)
-        ns    = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-        slugs = []
-        for loc in root.findall(".//sm:loc", ns):
-            url = loc.text or ""
-            if url.startswith("https://boards.greenhouse.io/") and url.count("/") == 3:
-                slug = url.rstrip("/").split("/")[-1]
-                if slug:
-                    slugs.append(slug)
-        print(f"[GH Sitemap] Found {len(slugs)} companies")
-        return slugs
-    except Exception as e:
-        print(f"[GH Sitemap] Error: {e}")
-        return []
-
 GREENHOUSE_FALLBACK = [
-    "databricks", "coinbase", "particle41llc", "bswiftindia", "builtin",
+    "databricks", "coinbase", "particle41llc", "bswiftindia",
     "gitlab", "apolloio", "samsara", "clarifai", "airslate",
     "asapp-2", "levelai", "degreed", "clickup", "welocalize",
     "stripe", "twilio", "datadog", "cloudflare", "notion",
     "figma", "linear", "vercel", "openai", "scale-ai",
     "glean", "moveworks", "cresta", "forethought",
     "snorkel-ai", "roboflow", "encord", "labelbox",
+    "groq", "together-ai", "anyscale",
 ]
 
-def scrape_greenhouse_all() -> list:
-    jobs  = []
-    slugs = get_all_greenhouse_slugs() or GREENHOUSE_FALLBACK
+def get_greenhouse_slugs() -> list:
+    """Try sitemap first, fallback to known list"""
+    try:
+        res = requests.get(
+            "https://boards.greenhouse.io/sitemap.xml",
+            headers=HEADERS, timeout=20
+        )
+        if res.status_code == 200:
+            root  = ET.fromstring(res.content)
+            ns    = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+            slugs = []
+            for loc in root.findall(".//sm:loc", ns):
+                url = loc.text or ""
+                if url.startswith("https://boards.greenhouse.io/") and url.count("/") == 3:
+                    slug = url.rstrip("/").split("/")[-1]
+                    if slug:
+                        slugs.append(slug)
+            if slugs:
+                print(f"[GH Sitemap] ✅ Found {len(slugs)} companies")
+                return slugs
+    except Exception as e:
+        print(f"[GH Sitemap] Failed: {e}")
 
-    print(f"[GH] Polling {len(slugs)} companies...")
+    print(f"[GH Sitemap] Using fallback list ({len(GREENHOUSE_FALLBACK)} companies)")
+    return GREENHOUSE_FALLBACK
+
+def scrape_greenhouse() -> list:
+    jobs  = []
+    slugs = get_greenhouse_slugs()
+
     for i, slug in enumerate(slugs):
         try:
             res = requests.get(
                 f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs",
-                headers=HEADERS, timeout=6
+                headers=HEADERS, timeout=8
             )
             if res.status_code != 200:
                 continue
@@ -229,25 +267,23 @@ def scrape_greenhouse_all() -> list:
         except Exception:
             pass
         if (i + 1) % 100 == 0:
-            print(f"[GH] {i+1}/{len(slugs)} done, {len(jobs)} jobs so far...")
+            print(f"[GH] Processed {i+1}/{len(slugs)}, {len(jobs)} jobs so far...")
         time.sleep(0.1)
 
-    print(f"[GH] {len(jobs)} total jobs")
+    print(f"[GH] {len(jobs)} total jobs from {len(slugs)} companies")
     return jobs
 
 # ──────────────────────────────────────────────────────
-# SOURCE 3 — Ashby (AI-native startups)
+# SOURCE 3 — Ashby (AI startups)
 # ──────────────────────────────────────────────────────
 ASHBY_COMPANIES = [
     "anyscale", "together-ai", "modal", "replicate",
     "langchain", "llamaindex", "weaviate", "qdrant",
     "cohere", "adept", "sweep", "codeium", "cursor",
-    "cognition", "imbue", "luma-ai", "pika",
-    "arcee-ai", "predibase", "baseten", "bentoml",
-    "lightning-ai", "labelbox", "encord", "roboflow",
-    "snorkel-ai", "dspy-ai", "guardrails-ai",
-    "unstructured", "chroma", "pinecone",
-    "helicone", "braintrust-data", "portkey-ai",
+    "cognition", "luma-ai", "arcee-ai", "predibase",
+    "baseten", "bentoml", "lightning-ai", "labelbox",
+    "encord", "roboflow", "snorkel-ai", "unstructured",
+    "chroma", "portkey-ai", "helicone", "braintrust-data",
 ]
 
 def scrape_ashby() -> list:
@@ -264,7 +300,7 @@ def scrape_ashby() -> list:
                 jobs.append(make_job(
                     title   = job.get("title", ""),
                     company = company.replace("-", " ").title(),
-                    location= job.get("location", "") or "",
+                    location= job.get("location", "") or "Remote",
                     link    = job.get("jobUrl", ""),
                     desc    = job.get("descriptionSafe", ""),
                     source  = "Ashby",
@@ -278,20 +314,18 @@ def scrape_ashby() -> list:
 
 # ──────────────────────────────────────────────────────
 # SOURCE 4 — Google CSE (only 5 queries to save quota)
-# 100 free queries/day — previous runs used them all up
 # ──────────────────────────────────────────────────────
 GOOGLE_QUERIES = [
     "AI engineer India",
     "machine learning engineer India",
-    "LLM engineer India remote",
+    "LLM engineer India",
     "GenAI engineer India",
-    "applied AI engineer India",
+    "applied AI engineer India remote",
 ]
 
 def scrape_via_google() -> list:
     jobs      = []
     seen_urls = set()
-
     for query in GOOGLE_QUERIES:
         try:
             res = requests.get(
@@ -301,15 +335,14 @@ def scrape_via_google() -> list:
                 timeout=10
             )
             if res.status_code == 429:
-                print(f"[Google] Quota exceeded for today — skipping remaining")
+                print("[Google] Daily quota exceeded — skipping")
                 break
             if res.status_code != 200:
                 print(f"[Google] HTTP {res.status_code} → {query}")
                 continue
 
             items = res.json().get("items", [])
-            print(f"[Google] {len(items):2d} results → {query}")
-
+            print(f"[Google] {len(items)} results → {query}")
             for item in items:
                 link    = item.get("link", "")
                 title   = item.get("title", "")
@@ -328,7 +361,7 @@ def scrape_via_google() -> list:
                 seen_urls.add(link)
                 jobs.append(make_job(title, slug.replace("-"," ").title(),
                                      "India / Remote", link, snippet,
-                                     f"{src} via Google", "< 24 hours ago"))
+                                     f"{src} via Google", "< 24h"))
             time.sleep(1)
         except Exception as e:
             print(f"[Google] Error: {e}")
@@ -337,13 +370,12 @@ def scrape_via_google() -> list:
     return jobs
 
 # ──────────────────────────────────────────────────────
-# TELEGRAM — 2 second delay to avoid rate limits
+# TELEGRAM — 2s delay prevents rate limit
 # ──────────────────────────────────────────────────────
 def send_telegram(job: dict):
     icons = {"Lever": "🟡", "Greenhouse": "🟢", "Ashby": "🔵", "Google": "🌐"}
     icon  = next((v for k, v in icons.items() if k in job["source"]), "📌")
-
-    msg = f"""{icon} *New AI Job Alert!*
+    msg   = f"""{icon} *New AI Job Alert!*
 
 📌 *{job['title']}*
 🏢 {job['company']}
@@ -361,29 +393,29 @@ def send_telegram(job: dict):
             timeout=15
         )
         print(f"[Telegram] {'✅' if r.status_code==200 else '❌'} — {job['title']} @ {job['company']}")
-        time.sleep(2)  # ← 2 second delay — prevents Telegram rate limit
+        time.sleep(2)
     except Exception as e:
         print(f"[Telegram] Error: {e}")
-        time.sleep(3)  # extra wait on error
+        time.sleep(3)
 
 # ──────────────────────────────────────────────────────
 # MAIN
 # ──────────────────────────────────────────────────────
 def main():
     print(f"\n{'━'*60}")
-    print(f"🤖 AI Job Alert Bot v6 — {datetime.now().strftime('%d %b %Y %H:%M')}")
+    print(f"🤖 AI Job Alert Bot v7 — {datetime.now().strftime('%d %b %Y %H:%M')}")
     print(f"{'━'*60}\n")
 
     seen     = load_seen()
     all_jobs = []
 
-    print("🟡 SOURCE 1: Lever (known AI companies)...")
+    print("🟡 SOURCE 1: Lever...")
     all_jobs += scrape_lever()
 
-    print("\n🟢 SOURCE 2: Greenhouse Sitemap (ALL companies)...")
-    all_jobs += scrape_greenhouse_all()
+    print("\n🟢 SOURCE 2: Greenhouse (ALL companies via sitemap)...")
+    all_jobs += scrape_greenhouse()
 
-    print("\n🔵 SOURCE 3: Ashby (AI-native startups)...")
+    print("\n🔵 SOURCE 3: Ashby (AI startups)...")
     all_jobs += scrape_ashby()
 
     print("\n🌐 SOURCE 4: Google CSE (last 24h)...")
@@ -396,19 +428,33 @@ def main():
             seen_urls.add(j["link"])
             unique.append(j)
 
-    # Filter — strict India only
-    filtered  = [j for j in unique if keyword_filter(j)]
-    new_count = 0
-
     print(f"\n{'━'*60}")
-    print(f"📊 Total unique jobs : {len(unique)}")
-    print(f"🔎 After filter      : {len(filtered)} India AI/ML jobs")
+    print(f"📊 Total unique jobs scraped : {len(unique)}")
+
+    # Apply filter with debug info
+    matched, skipped_kw, skipped_loc = [], 0, 0
+    for j in unique:
+        title = j["title"].lower()
+        has_kw  = any(kw in title for kw in INCLUDE_KEYWORDS)
+        no_excl = not any(kw in title for kw in EXCLUDE_TITLE)
+        india   = is_india_eligible(j)
+
+        if has_kw and no_excl and india:
+            matched.append(j)
+        elif not has_kw or not no_excl:
+            skipped_kw += 1
+        else:
+            skipped_loc += 1
+
+    print(f"🔑 Keyword filter removed    : {skipped_kw} jobs")
+    print(f"📍 Location filter removed   : {skipped_loc} jobs")
+    print(f"✅ Matched India AI/ML jobs  : {len(matched)}")
     print(f"{'━'*60}\n")
 
-    for job in filtered:
+    new_count = 0
+    for job in matched:
         jid = make_id(job["link"])
         if jid in seen:
-            print(f"⏭️  Seen: {job['title']} @ {job['company']}")
             continue
         print(f"✅ NEW → {job['title']} @ {job['company']} | {job['location']}")
         send_telegram(job)
