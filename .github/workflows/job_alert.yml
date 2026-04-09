@@ -2,15 +2,16 @@ name: 🤖 AI Job Alert Bot
 
 on:
   schedule:
-    - cron: "0 * * * *"   # Every 1 hour, 24/7, FREE
-  workflow_dispatch:        # Manual trigger
+    - cron: "0 */2 * * *"  # Every 2 hours (1000+ companies takes longer)
+  workflow_dispatch:
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # Fix Node.js 20 deprecation warning
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Fix Node.js deprecation warning
 
 jobs:
   check-jobs:
     runs-on: ubuntu-latest
+    timeout-minutes: 90        # Allow up to 90 min for 1000+ companies
     permissions:
       contents: write
 
@@ -34,10 +35,10 @@ jobs:
           GOOGLE_CSE_ID:      ${{ secrets.GOOGLE_CSE_ID }}
         run: python job_alert.py
 
-      - name: 💾 Save seen_jobs.json
+      - name: 💾 Save state files
         run: |
           git config user.name  "Job Alert Bot"
           git config user.email "bot@github.com"
-          git add seen_jobs.json || true
-          git diff --cached --quiet || git commit -m "🤖 seen jobs [$(date '+%d %b %Y %H:%M')]"
+          git add seen_jobs.json ats_cache.json || true
+          git diff --cached --quiet || git commit -m "🤖 update [$(date '+%d %b %Y %H:%M')]"
           git push || true
