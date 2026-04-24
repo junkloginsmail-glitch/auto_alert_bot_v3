@@ -1,5 +1,5 @@
 """
-🤖 AI Job Alert Bot v9 — 474+ Companies, All ATS Platforms
+🤖 AI Job Alert Bot v10 — 474+ Companies, All ATS Platforms
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Author: Akash Shinde (SpiDo)
 Target: 3 YOE | Java Backend + AI/ML/GenAI/LLM Engineer
@@ -11,6 +11,7 @@ Roles : Backend Engineer, Java Developer, AI Engineer,
 """
 
 import os, json, time, hashlib, requests, re
+from naukri_scraper import scrape_naukri
 from datetime import datetime
 
 # ──────────────────────────────────────────────────────
@@ -417,20 +418,27 @@ def fetch_jobs(ats: str, slug: str) -> list:
 SOURCE_ICONS = {
     "Lever": "🟡", "Greenhouse": "🟢",
     "Ashby": "🔵", "Workday": "🟠",
-    "Google CSE": "🌐"
+    "Google CSE": "🌐", "Naukri": "🔴"
 }
 
 def send_telegram(job: dict):
     icon = SOURCE_ICONS.get(job["source"], "📌")
-    msg  = f"""{icon} *New Job Alert!*
-
-📌 *{job['title']}*
-🏢 {job['company']}
-📍 {job['location']}
-📅 {job['posted']}
-🔍 {job['source']}
-
-🔗 [Apply Now]({job['link']})"""
+    parts = [
+        f"{icon} *New Job Alert!*",
+        "",
+        f"📌 *{job['title']}*",
+        f"🏢 {job['company']}",
+        f"📍 {job['location']}",
+    ]
+    if job.get('salary'): parts.append(f"💰 {job['salary']}")
+    if job.get('exp'):    parts.append(f"🧑‍💻 {job['exp']}")
+    parts += [
+        f"📅 {job['posted']}",
+        f"🔍 {job['source']}",
+        "",
+        f"🔗 [Apply Now]({job['link']})"
+    ]
+    msg = "\n".join(parts)
     try:
         r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
@@ -451,7 +459,7 @@ def send_telegram(job: dict):
 # ──────────────────────────────────────────────────────
 def main():
     print(f"\n{'━'*60}")
-    print(f"🤖 AI Job Alert Bot v9 — {datetime.now().strftime('%d %b %Y %H:%M')}")
+    print(f"🤖 AI Job Alert Bot v10 — {datetime.now().strftime('%d %b %Y %H:%M')}")
     print(f"{'━'*60}\n")
 
     seen      = load_seen()
@@ -478,8 +486,37 @@ def main():
 
         time.sleep(0.2)
 
+    # Naukri
+    print(f"\n🔴 SOURCE 5: Naukri (ALL new Java + AI jobs in India)...")
+    try:
+        naukri_jobs = scrape_naukri()
+        all_jobs += naukri_jobs
+    except Exception as e:
+        print(f"[Naukri] Failed: {e}")
+
+    # ── STEP 2+3: Naukri ─────────────────────────────────────
+    # Searches ALL target job titles on Naukri (last 24h)
+    # jobAge=1 → within 2hr cycle catches any new posting
+    # seen_jobs.json dedup → same logic as Lever/Greenhouse
+    print(f"\n🔴 SOURCE 5: Naukri (last 24h | all Java + AI titles)...")
+    try:
+        naukri_jobs = scrape_naukri()
+        for j in naukri_jobs:
+            all_jobs.append({
+                "title":    j["title"],
+                "company":  j["company"],
+                "location": j["location"],
+                "link":     j["link"],
+                "source":   "Naukri",
+                "posted":   j.get("posted", "Today"),
+                "salary":   j.get("salary", ""),
+                "exp":      j.get("exp", ""),
+            })
+    except Exception as e:
+        print(f"[Naukri] Error: {e}")
+
     # Google CSE
-    print(f"\n🌐 Google CSE (last 24h fresh postings)...")
+    print(f"\n🌐 SOURCE 6: Google CSE (last 24h fresh postings)...")
     all_jobs += scrape_google()
 
     # Deduplicate
