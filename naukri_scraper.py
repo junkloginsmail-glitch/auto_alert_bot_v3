@@ -1,11 +1,13 @@
 """
-🇮🇳 Naukri Job Scraper — RSS + Login Edition
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🇮🇳 Naukri Job Scraper — RSS + Playwright Login Edition
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Strategy (in order):
   1. RSS feeds          — public, no auth, real-time
   2. Naukri internal API — unauthenticated REST
-  3. Authenticated session — logs in with NAUKRI_EMAIL / NAUKRI_PASSWORD
-     → bypasses IP blocks, returns fresh job results
+  3. Playwright login   — real browser login with NAUKRI_EMAIL / NAUKRI_PASSWORD
+     → Naukri uses Akamai bot-detection; playwright-stealth bypasses fingerprinting
+     → API calls made via page.evaluate() INSIDE the browser — Akamai cookies
+       stay in the browser and never need to be transferred to requests
 seen_jobs.json dedup — only NEW job IDs trigger alert
 NO deletion of old IDs — only adds new ones ✅
 """
@@ -27,130 +29,149 @@ SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY", "")
 NAUKRI_EMAIL    = os.environ.get("NAUKRI_EMAIL", "")
 NAUKRI_PASSWORD = os.environ.get("NAUKRI_PASSWORD", "")
 
-# Cached authenticated session (reused across all searches in one run)
-_naukri_session: requests.Session | None = None
+# Cached browser state — kept open across all searches in one run
+# Using page.evaluate() to call the API from inside the browser so Akamai
+# fingerprint cookies never need to leave the browser context.
+_naukri_stealth_cm   = None   # SyncWrappingContextManager (for cleanup)
+_naukri_browser      = None   # Playwright Browser
+_naukri_page         = None   # Playwright Page (reused for all fetch calls)
 
 
-def _naukri_login() -> requests.Session | None:
+def _ensure_naukri_page():
     """
-    Login to Naukri via their REST API and return an authenticated session.
-    Called once per run; session is cached in _naukri_session.
-    Requires NAUKRI_EMAIL and NAUKRI_PASSWORD env vars / GitHub Secrets.
+    Open a stealth headless browser, log in to Naukri, and return the live page.
+    The browser stays open so _fetch_authenticated() can reuse it for all searches
+    via page.evaluate() — keeping Akamai fingerprint cookies inside the browser.
+    Call _close_naukri_browser() after all searches to release resources.
     """
-    global _naukri_session
+    global _naukri_stealth_cm, _naukri_browser, _naukri_page
 
-    if _naukri_session is not None:
-        return _naukri_session
+    if _naukri_page is not None:
+        return _naukri_page
 
     if not NAUKRI_EMAIL or not NAUKRI_PASSWORD:
         return None
 
-    session = requests.Session()
-
-    # Step 1 — visit homepage to pick up initial cookies (appId, device ID, etc.)
     try:
-        session.get("https://www.naukri.com/", headers=HEADERS, timeout=15)
-    except Exception:
-        pass
-
-    # Step 2 — POST login credentials to Naukri's central login REST endpoint
-    login_headers = {
-        **HEADERS,
-        "Content-Type": "application/json",
-        "appid":        "109",
-        "systemid":     "109",
-        "gid":          "LOCATION,INDUSTRY,EDUCATION,FAREA_ROLE",
-    }
-    payload = {
-        "username": NAUKRI_EMAIL,
-        "password": NAUKRI_PASSWORD,
-        "type":     "login",
-    }
-
-    try:
-        resp = session.post(
-            "https://www.naukri.com/central-login-services/v1/login",
-            headers=login_headers,
-            json=payload,
-            timeout=20,
-        )
-    except Exception as e:
-        print(f"  [Naukri Login] ❌ Network error: {e}")
+        from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+        from playwright_stealth import Stealth
+    except ImportError as e:
+        print(f"  [Naukri Login] ⚠️  Missing package: {e}")
+        print("  [Naukri Login] Run: pip install playwright playwright-stealth && playwright install --with-deps chromium")
         return None
 
-    if resp.status_code == 200:
+    print("  [Naukri Login] 🌐 Launching stealth headless browser for login...")
+    try:
+        _naukri_stealth_cm = Stealth().use_sync(sync_playwright())
+        pw = _naukri_stealth_cm.start()
+
+        _naukri_browser = pw.chromium.launch(headless=True)
+        ctx = _naukri_browser.new_context(
+            user_agent=HEADERS["User-Agent"],
+            viewport={"width": 1280, "height": 800},
+        )
+        _naukri_page = ctx.new_page()
+
+        # 1. Open Naukri login page
+        _naukri_page.goto("https://www.naukri.com/nlogin/login", timeout=30000)
+        _naukri_page.wait_for_load_state("networkidle", timeout=20000)
+
+        # 2. Fill credentials (IDs confirmed from live page inspection)
+        _naukri_page.fill("#usernameField", NAUKRI_EMAIL)
+        _naukri_page.fill("#passwordField", NAUKRI_PASSWORD)
+
+        # 3. Submit and wait for post-login page
+        _naukri_page.click("button[type='submit']")
         try:
-            data = resp.json()
-            # Naukri returns the token inside data.customerDetails or headers
-            token = (data.get("data", {}) or {}).get("authorizationToken", "")
-            if token:
-                session.headers.update({"appid": "109", "systemid": "109",
-                                        "Authorization": token})
-        except Exception:
-            pass
+            _naukri_page.wait_for_url("**/mnjuser/**", timeout=15000)
+        except PWTimeout:
+            _naukri_page.wait_for_load_state("networkidle", timeout=10000)
+
+        # 4. Verify we left the login page
+        if "nlogin" in _naukri_page.url:
+            print("  [Naukri Login] ❌ Login failed — check NAUKRI_EMAIL / NAUKRI_PASSWORD")
+            _close_naukri_browser()
+            return None
+
         print("  [Naukri Login] ✅ Logged in successfully")
-        _naukri_session = session
-        return session
-    elif resp.status_code == 401:
-        print("  [Naukri Login] ❌ Invalid credentials — check NAUKRI_EMAIL / NAUKRI_PASSWORD")
-    else:
-        print(f"  [Naukri Login] ❌ Login failed (HTTP {resp.status_code})")
-    return None
+        return _naukri_page
+
+    except Exception as e:
+        print(f"  [Naukri Login] ❌ Browser login error: {e}")
+        _close_naukri_browser()
+        return None
+
+
+def _close_naukri_browser():
+    """Release browser resources after all searches finish."""
+    global _naukri_stealth_cm, _naukri_browser, _naukri_page
+    try:
+        if _naukri_browser:
+            _naukri_browser.close()
+        if _naukri_stealth_cm:
+            _naukri_stealth_cm.__exit__(None, None, None)
+    except Exception:
+        pass
+    _naukri_stealth_cm = None
+    _naukri_browser    = None
+    _naukri_page       = None
 
 
 def _fetch_authenticated(slug: str, location: str) -> list:
     """
-    Fetch jobs using an authenticated Naukri session.
-    Falls back to the regular search API but with auth cookies — bypasses most blocks.
+    Fetch jobs by navigating to the Naukri search URL inside the logged-in browser
+    and intercepting the /jobapi/v3/search XHR response that Naukri's own JS sends.
+    This bypasses reCAPTCHA because the request is initiated by Naukri's own code
+    with all the correct headers, CSRF tokens, and Akamai fingerprint cookies.
     """
-    session = _naukri_login()
-    if session is None:
+    page = _ensure_naukri_page()
+    if page is None:
         return []
 
-    keyword = slug.replace("-", " ")
+    captured: list = []
+
+    def on_response(response):
+        try:
+            if "/jobapi/v3/search" in response.url and response.status == 200:
+                data = response.json()
+                captured.extend(data.get("jobDetails", []))
+        except Exception:
+            pass
+
+    page.on("response", on_response)
     try:
-        r = session.get(
-            "https://www.naukri.com/jobapi/v3/search",
-            params={
-                "noOfResults":  20,
-                "urlType":      "search_by_key_loc",
-                "searchType":   "adv",
-                "keyword":      keyword,
-                "location":     location,
-                "experience":   0,
-                "experienceDD": 6,
-                "jobAge":       1,
-            },
-            headers={**HEADERS, "appid": "109", "systemid": "109"},
-            timeout=15,
-        )
-
-        if r.status_code == 200:
-            jobs = []
-            for job in r.json().get("jobDetails", []):
-                ph     = job.get("placeholders", [])
-                loc    = ph[0].get("label", "") if ph else ""
-                salary = ph[1].get("label", "") if len(ph) > 1 else ""
-                exp    = ph[2].get("label", "") if len(ph) > 2 else ""
-                jd     = job.get("jdURL", "")
-                link   = f"https://www.naukri.com{jd}" if jd and not jd.startswith("http") else jd
-                job_id = str(job.get("jobId", link))
-
-                jobs.append({
-                    "id":       hashlib.md5(job_id.encode()).hexdigest(),
-                    "title":    job.get("title", ""),
-                    "company":  job.get("companyName", ""),
-                    "location": loc,
-                    "link":     link,
-                    "source":   "Naukri",
-                    "posted":   job.get("footerPlaceholderLabel", "Recent"),
-                    "salary":   salary,
-                    "exp":      exp,
-                })
-            return jobs
+        url = f"https://www.naukri.com/{slug}-jobs-in-{location}"
+        page.goto(url, timeout=30000, wait_until="domcontentloaded")
+        # Wait briefly for in-flight XHR to complete after DOM load
+        page.wait_for_timeout(3000)
     except Exception as e:
-        print(f"  [Naukri Auth] Error for '{keyword}': {e}")
-    return []
+        # Timeout on full page load is fine — XHR data is already captured
+        pass
+    finally:
+        page.remove_listener("response", on_response)
+
+    jobs = []
+    for job in captured:
+        ph     = job.get("placeholders", [])
+        loc    = ph[0].get("label", "") if ph else ""
+        salary = ph[1].get("label", "") if len(ph) > 1 else ""
+        exp    = ph[2].get("label", "") if len(ph) > 2 else ""
+        jd     = job.get("jdURL", "")
+        link   = f"https://www.naukri.com{jd}" if jd and not jd.startswith("http") else jd
+        job_id = str(job.get("jobId", link))
+
+        jobs.append({
+            "id":       hashlib.md5(job_id.encode()).hexdigest(),
+            "title":    job.get("title", ""),
+            "company":  job.get("companyName", ""),
+            "location": loc,
+            "link":     link,
+            "source":   "Naukri",
+            "posted":   job.get("footerPlaceholderLabel", "Recent"),
+            "salary":   salary,
+            "exp":      exp,
+        })
+    return jobs
 
 # ── ALL target job titles → Naukri RSS URLs ───────────────────
 # Pattern: naukri.com/rss/searchresults/{title}-jobs-in-india.rss
@@ -373,6 +394,9 @@ def scrape_naukri() -> list:
             print("  [Naukri] ⚠️  RSS and API are blocked by Naukri")
             print("  [Naukri] 💡 Add NAUKRI_EMAIL + NAUKRI_PASSWORD as GitHub Secrets to bypass")
             print("  [Naukri] 💡 Or add SCRAPER_API_KEY (scraperapi.com, 5000 req/month free)")
+
+    # Close the browser if it was opened for authenticated searches
+    _close_naukri_browser()
 
     print(f"[Naukri] Total: {len(all_jobs)} unique jobs found")
     return all_jobs
