@@ -101,8 +101,8 @@ def _ensure_naukri_page():
         _naukri_page.wait_for_load_state("networkidle", timeout=20000)
 
         # 2. Fill credentials (IDs confirmed from live page inspection)
-            _naukri_page.fill("#usernameField", email)
-            _naukri_page.fill("#passwordField", password)
+        _naukri_page.fill("#usernameField", email)
+        _naukri_page.fill("#passwordField", password)
         # 3. Submit and wait for post-login page
         _naukri_page.click("button[type='submit']")
         try:
@@ -113,7 +113,9 @@ def _ensure_naukri_page():
         # 4. Verify we left the login page
         if "nlogin" in _naukri_page.url:
             print("  [Naukri Login] ❌ Login failed — check NAUKRI_EMAIL / NAUKRI_PASSWORD")
-                _naukri_login_failed = True
+            _naukri_login_failed = True
+            _close_naukri_browser()
+            return None
 
         print("  [Naukri Login] ✅ Logged in successfully")
         return _naukri_page
