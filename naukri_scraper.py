@@ -108,7 +108,8 @@ def _fetch_browser(slug: str, location: str) -> list:
 
     page.on("response", on_response)
     try:
-        url = f"https://www.naukri.com/{slug}-jobs-in-{location}"
+        # sort=3 = "Date" (most recent first); default is relevance
+        url = f"https://www.naukri.com/{slug}-jobs-in-{location}?sort=3"
         page.goto(url, timeout=30000, wait_until="domcontentloaded")
         # Wait briefly for in-flight XHR to complete after DOM load
         page.wait_for_timeout(3000)
@@ -270,6 +271,7 @@ def _fetch_api(slug: str, location: str) -> list:
                 "experience":   0,
                 "experienceDD": 6,
                 "jobAge":       1,
+                "sort":         3,   # 3 = Date (most recent first)
             },
             headers=HEADERS,
             timeout=15
