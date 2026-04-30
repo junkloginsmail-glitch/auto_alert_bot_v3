@@ -25,7 +25,24 @@ HEADERS = {
 # Free tier: 5000 requests/month — signup at scraperapi.com
 SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY", "")
 
-# ── Naukri Login Credentials (set as GitHub Secrets) ─────────
+# ── Naukri Login Credentials ──────────────────────────────────
+# In GitHub Actions: set NAUKRI_EMAIL and NAUKRI_PASSWORD as repository secrets.
+# For local runs: create a .env file in this directory with:
+#   NAUKRI_EMAIL=your@email.com
+#   NAUKRI_PASSWORD=yourpassword
+def _load_dotenv():
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if not os.path.exists(env_path):
+        return
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                os.environ.setdefault(k.strip(), v.strip())
+
+_load_dotenv()
+
 NAUKRI_EMAIL    = os.environ.get("NAUKRI_EMAIL", "")
 NAUKRI_PASSWORD = os.environ.get("NAUKRI_PASSWORD", "")
 
@@ -35,6 +52,7 @@ NAUKRI_PASSWORD = os.environ.get("NAUKRI_PASSWORD", "")
 _naukri_stealth_cm   = None   # SyncWrappingContextManager (for cleanup)
 _naukri_browser      = None   # Playwright Browser
 _naukri_page         = None   # Playwright Page (reused for all fetch calls)
+_naukri_login_failed = False  # sentinel — prevents retrying after a failed login
 
 
 def _ensure_naukri_page():
@@ -44,12 +62,18 @@ def _ensure_naukri_page():
     via page.evaluate() — keeping Akamai fingerprint cookies inside the browser.
     Call _close_naukri_browser() after all searches to release resources.
     """
-    global _naukri_stealth_cm, _naukri_browser, _naukri_page
+    global _naukri_stealth_cm, _naukri_browser, _naukri_page, _naukri_login_failed
+
+    if _naukri_login_failed:
+        return None   # login already failed this run — don't retry 66+ times
 
     if _naukri_page is not None:
         return _naukri_page
 
-    if not NAUKRI_EMAIL or not NAUKRI_PASSWORD:
+    # Re-read env in case _load_dotenv() ran after module load
+    email    = os.environ.get("NAUKRI_EMAIL", "")
+    password = os.environ.get("NAUKRI_PASSWORD", "")
+    if not email or not password:
         return None
 
     try:
@@ -77,9 +101,8 @@ def _ensure_naukri_page():
         _naukri_page.wait_for_load_state("networkidle", timeout=20000)
 
         # 2. Fill credentials (IDs confirmed from live page inspection)
-        _naukri_page.fill("#usernameField", NAUKRI_EMAIL)
-        _naukri_page.fill("#passwordField", NAUKRI_PASSWORD)
-
+            _naukri_page.fill("#usernameField", email)
+            _naukri_page.fill("#passwordField", password)
         # 3. Submit and wait for post-login page
         _naukri_page.click("button[type='submit']")
         try:
@@ -90,14 +113,14 @@ def _ensure_naukri_page():
         # 4. Verify we left the login page
         if "nlogin" in _naukri_page.url:
             print("  [Naukri Login] ❌ Login failed — check NAUKRI_EMAIL / NAUKRI_PASSWORD")
-            _close_naukri_browser()
-            return None
+                _naukri_login_failed = True
 
         print("  [Naukri Login] ✅ Logged in successfully")
         return _naukri_page
 
     except Exception as e:
         print(f"  [Naukri Login] ❌ Browser login error: {e}")
+        _naukri_login_failed = True
         _close_naukri_browser()
         return None
 
@@ -115,6 +138,8 @@ def _close_naukri_browser():
     _naukri_stealth_cm = None
     _naukri_browser    = None
     _naukri_page       = None
+    # Note: _naukri_login_failed is NOT reset here — keeps the sentinel
+    # for the remainder of this process run to avoid retrying a bad login
 
 
 def _fetch_authenticated(slug: str, location: str) -> list:
