@@ -108,8 +108,9 @@ def _fetch_browser(slug: str, location: str) -> list:
 
     page.on("response", on_response)
     try:
-        # sort=3 = "Date" (most recent first); default is relevance
-        url = f"https://www.naukri.com/{slug}-jobs-in-{location}?sort=3"
+        # sort=3 = Date (newest first); jobAge=1 = posted in last 24h
+        # dedup via seen_jobs.json ensures only jobs since last run alert
+        url = f"https://www.naukri.com/{slug}-jobs-in-{location}?sort=3&jobAge=1"
         page.goto(url, timeout=30000, wait_until="domcontentloaded")
         # Wait briefly for in-flight XHR to complete after DOM load
         page.wait_for_timeout(3000)
