@@ -1,0 +1,45 @@
+name: 🤖 AI Job Alert Bot
+
+on:
+  schedule:
+    - cron: "0 */2 * * *"   # Every 2 hours
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  check-jobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install dependencies
+        run: pip install requests
+
+      - name: 🤖 Run Job Alert Bot
+        env:
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+          GOOGLE_API_KEY:      ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_CSE_ID:       ${{ secrets.GOOGLE_CSE_ID }}
+          SCRAPER_API_KEY:     ${{ secrets.SCRAPER_API_KEY }}
+        run: python job_alert.py
+
+      - name: 💾 Save seen_jobs.json (keeps ALL IDs — no deletion)
+        run: |
+          git config user.name  "Job Alert Bot"
+          git config user.email "bot@github.com"
+          git add seen_jobs.json || true
+          git diff --cached --quiet || git commit -m "🤖 update [$(date '+%d %b %Y %H:%M')]"
+          git push || true

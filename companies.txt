@@ -1,0 +1,1010 @@
+# ══════════════════════════════════════════════════════
+# COMPANY WATCHLIST — AI Job Alert Bot
+# ══════════════════════════════════════════════════════
+# Format: one company per line
+# Use the company's careers URL slug or domain name
+# Bot will auto-detect Lever / Greenhouse / Ashby ATS
+# Add or remove companies anytime — bot reads this file
+# ══════════════════════════════════════════════════════
+
+# ── AI-FIRST COMPANIES (Global) ──────────────────────
+anthropic
+openai
+mistral
+cohere
+huggingface
+databricks
+scale
+anyscale
+together-ai
+perplexity
+replicate
+modal
+codeium
+cursor
+cognition
+imbue
+adept
+runway
+stability
+luma-ai
+pika
+elevenlabs
+deepmind
+inflection
+characterai
+
+# ── AI INFRASTRUCTURE & TOOLS ────────────────────────
+wandb
+langchain
+llamaindex
+weaviate
+qdrant
+chroma
+pinecone
+milvus-io
+zilliz
+unstructured
+labelbox
+encord
+roboflow
+snorkel-ai
+scale-ai
+predibase
+baseten
+bentoml
+lightning-ai
+groq
+vllm
+anyscale
+together-ai
+modal
+replicate
+arcee-ai
+braintrust-data
+helicone
+portkey-ai
+
+# ── BIG TECH (US) — Visa Sponsorship ─────────────────
+google
+microsoft
+amazon
+meta
+apple
+nvidia
+salesforce
+adobe
+oracle
+ibm
+intel
+qualcomm
+amd
+servicenow
+workday
+splunk
+pagerduty
+elastic
+mongodb
+confluent
+datadog
+cloudflare
+stripe
+twilio
+github
+gitlab
+hashicorp
+terraform
+docker
+kubernetes
+
+# ── FINTECH (US/EU) — Visa Sponsorship ───────────────
+coinbase
+ripple
+plaid
+brex
+ramp
+mercury
+airwallex
+wise
+klarna
+revolut
+checkout-com
+adyen
+marqeta
+payoneer
+razorpay
+
+# ── PRODUCT/SAAS (US) ─────────────────────────────────
+notion
+linear
+vercel
+netlify
+supabase
+planetscale
+neon
+figma
+miro
+asana
+clickup
+monday
+airtable
+webflow
+retool
+dbt-labs
+fivetran
+airbyte
+hightouch
+census
+segment
+mixpanel
+amplitude
+posthog
+heap
+fullstory
+
+# ── AI ENTERPRISE (US) ───────────────────────────────
+glean
+moveworks
+cresta
+forethought
+observe-ai
+uniphore
+cogito
+five9
+genesys
+verint
+nice-systems
+
+# ── JAPANESE COMPANIES — Visa Sponsorship ────────────
+mercari
+line
+rakuten
+softbank
+fujitsu
+ntt-data
+hitachi
+sony
+toyota-connected
+recruit-holdings
+cyberagent
+dena
+gree
+mixi
+preferred-networks
+
+# ── EUROPEAN COMPANIES — Visa Sponsorship ────────────
+spotify
+king
+klarna
+revolut
+deliveroo
+checkout-com
+wise
+monzo
+bulb
+improbable
+graphcore
+wayve
+tractable
+healx
+benevolentai
+synthesia
+onfido
+thought-machine
+starling-bank
+oaknorth
+
+# ── INDIAN COMPANIES ─────────────────────────────────
+freshworks
+zoho
+wipro
+infosys
+tcs
+hcl
+cognizant
+techmahindra
+mphasis
+hexaware
+ltimindtree
+persistent
+coforge
+zensar
+niit-technologies
+sasken
+kpit
+cyient
+happiest-minds
+birlasoft
+# Indian startups
+razorpay
+phonepe
+paytm
+zepto
+swiggy
+zomato
+meesho
+groww
+cred
+slice-fintech
+navi
+ola
+rapido
+urban-company
+lenskart
+mamaearth
+boat-lifestyle
+# Indian AI startups
+sarvam-ai
+krutrim
+yellow-ai
+haptik
+sprinklr
+clevertap
+moengage
+netcore-cloud
+webengage
+insider-in
+exotel
+kaleyra
+gupshup
+vernacular-ai
+slang-labs
+
+# ── SINGAPORE/APAC — Visa Sponsorship ────────────────
+grab
+sea-group
+shopee
+garena
+gojek
+tokopedia
+bukalapak
+traveloka
+goto
+carousell
+ninja-van
+lalamove
+foodpanda
+lazada
+
+# ── MIDDLE EAST ───────────────────────────────────────
+careem
+noon
+talabat
+namshi
+fetchr
+
+# ── REMOTE-FIRST COMPANIES ───────────────────────────
+gitlab
+automattic
+zapier
+buffer
+basecamp
+doist
+hotjar
+invision
+remote-com
+deel
+rippling
+gusto
+lattice
+leapsome
+15five
+culture-amp
+betterworks
+workday
+greenhouse-io
+lever-co
+ashbyhq
+
+# ── ML PLATFORM / MLOPS ──────────────────────────────
+sagemaker
+vertex-ai
+huggingface
+dagshub
+dvc-org
+bentoml
+seldon
+cortex-labs
+truera
+arize-ai
+fiddler-ai
+arthur-ai
+monitaur
+superwise
+aporia
+whylabs
+
+# ══════════════════════════════════════════════════════════════
+# COMPANY WATCHLIST — AI Job Alert Bot
+# ══════════════════════════════════════════════════════════════
+# FORMAT:
+#   lever:slug        → jobs.lever.co/slug
+#   greenhouse:slug   → boards.greenhouse.io/slug
+#   ashby:slug        → jobs.ashbyhq.com/slug
+#   workday:slug      → slug.wd1.myworkdayjobs.com
+#
+# HOW TO FIND THE SLUG:
+#   Go to company careers page → look at URL
+#   e.g. jobs.lever.co/databricks → slug = databricks
+#        boards.greenhouse.io/stripe → slug = stripe
+#
+# ADD ANY COMPANY: just add a line below and bot finds the jobs!
+# ══════════════════════════════════════════════════════════════
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# A — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:amazon
+workday:apple
+greenhouse:adobe
+greenhouse:accenture
+greenhouse:atlassian
+lever:amdocs
+greenhouse:airbnb
+workday:amd
+workday:asml
+greenhouse:alteryx
+greenhouse:ansys
+lever:airtel
+lever:adani
+lever:aisera
+lever:avaamo
+greenhouse:appdirect
+greenhouse:apptio
+greenhouse:akamai
+greenhouse:autodesk
+greenhouse:avaya
+greenhouse:asana
+greenhouse:atos
+greenhouse:alation
+greenhouse:amplitude
+greenhouse:airbyte
+greenhouse:astronomer
+greenhouse:algolia
+lever:aerospike
+lever:acquia
+greenhouse:appian
+greenhouse:automationanywhere
+lever:affle
+lever:acko
+ashby:anyscale
+lever:adyen
+greenhouse:affirm
+greenhouse:addepar
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# B — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:bloomberg
+workday:blackrock
+workday:boeing
+workday:broadcom
+greenhouse:box
+greenhouse:blueyonder
+greenhouse:barclays
+lever:bharatpe
+greenhouse:bosch
+lever:byjus
+greenhouse:brainly
+greenhouse:brex
+greenhouse:block
+greenhouse:bill
+lever:browserstack
+lever:bigbasket
+lever:bookmyshow
+lever:blueprism
+greenhouse:uipath
+greenhouse:boomi
+greenhouse:benchling
+greenhouse:benchsci
+greenhouse:benevolentai
+greenhouse:blockchain
+greenhouse:buffer
+greenhouse:bloomreach
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# C — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:cisco
+workday:cognizant
+workday:capgemini
+greenhouse:cloudera
+greenhouse:citrix
+lever:confluent
+greenhouse:cloudflare
+greenhouse:cockroachlabs
+greenhouse:canonical
+greenhouse:c3ai
+ashby:cohere
+greenhouse:cresta
+greenhouse:clarifai
+lever:coforge
+lever:chargebee
+lever:clevertap
+greenhouse:circleCI
+greenhouse:clickhouse
+greenhouse:cloudbees
+greenhouse:cloudinary
+lever:coursera
+lever:crunchbase
+lever:chegg
+greenhouse:celonis
+greenhouse:cerebras
+greenhouse:chainalysis
+greenhouse:classplus
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# D — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:dell
+greenhouse:deloitte
+greenhouse:dropbox
+lever:databricks
+greenhouse:digitalocean
+greenhouse:docusign
+greenhouse:dynatrace
+greenhouse:darktrace
+greenhouse:datarobot
+greenhouse:dataiku
+greenhouse:datastax
+greenhouse:descript
+lever:delhivery
+lever:darwinbox
+greenhouse:deutschebank
+greenhouse:dbs
+lever:dhan
+greenhouse:docker
+greenhouse:datadog
+greenhouse:dbtlabs
+greenhouse:dgraph
+lever:druva
+greenhouse:duolingo
+greenhouse:discord
+greenhouse:deel
+greenhouse:drift
+greenhouse:datacamp
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# E — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:ebay
+workday:expedia
+workday:ericsson
+workday:epicgames
+greenhouse:equinix
+lever:elastic
+greenhouse:epam
+greenhouse:eightfoldai
+lever:exlservice
+lever:eruditus
+greenhouse:egnyte
+greenhouse:exabeam
+greenhouse:envestnet
+greenhouse:eventbrite
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# F — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:meta
+workday:fujitsu
+workday:flex
+workday:fiserv
+workday:fis
+greenhouse:factset
+greenhouse:five9
+greenhouse:fastly
+greenhouse:fortinet
+greenhouse:fractalanalytics
+greenhouse:feedzai
+lever:freshworks
+lever:flipkart
+greenhouse:fidelity
+greenhouse:figma
+greenhouse:fullstory
+greenhouse:fivetran
+greenhouse:formlabs
+lever:firecompass
+lever:finbox
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# G — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:google
+greenhouse:github
+workday:goldmansachs
+workday:ge
+workday:gm
+greenhouse:godaddy
+workday:gartner
+greenhouse:glean
+greenhouse:graphcore
+greenhouse:grammarly
+greenhouse:gong
+lever:gupshup
+greenhouse:gainsight
+workday:genpact
+greenhouse:globant
+lever:groww
+greenhouse:gitlab
+greenhouse:grafana
+greenhouse:gravitational
+greenhouse:grab
+greenhouse:gojek
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# H — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:hcltech
+workday:hp
+workday:hpe
+workday:honeywell
+workday:huawei
+workday:hitachi
+greenhouse:hubspot
+greenhouse:hashicorp
+greenhouse:h2oai
+greenhouse:huggingface
+lever:haptik
+lever:hasura
+greenhouse:harness
+greenhouse:heap
+greenhouse:highradius
+greenhouse:hyland
+workday:hsbc
+workday:hdfc
+greenhouse:hackerrank
+greenhouse:hotjar
+greenhouse:highspot
+lever:healthifyme
+lever:homelane
+lever:hiver
+lever:hypertrack
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# I — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:ibm
+workday:intel
+workday:infosys
+greenhouse:intuit
+greenhouse:informatica
+workday:infineon
+lever:instabase
+lever:innovaccer
+lever:inmobi
+greenhouse:influxdata
+greenhouse:ironclad
+greenhouse:intercom
+greenhouse:iterable
+workday:icicibank
+workday:indusindbank
+workday:ing
+lever:iqvia
+lever:indegene
+lever:inshorts
+lever:indiamart
+lever:icertis
+lever:imocha
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# J — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:jpmorgan
+greenhouse:juniper
+greenhouse:jetbrains
+greenhouse:jfrog
+workday:johndeere
+workday:johnsoncontrols
+lever:jasperai
+lever:juspay
+lever:jar
+lever:jiffy
+lever:jungleworks
+greenhouse:jefferies
+greenhouse:judo
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# K — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:kpmg
+workday:kla
+workday:keysight
+lever:kyndryl
+lever:kpit
+lever:happiest-minds
+lever:khatabook
+lever:keka
+lever:kore
+greenhouse:klaviyo
+greenhouse:kustomer
+ashby:qdrant
+greenhouse:kaseya
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# L — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:linkedin
+workday:lyft
+workday:lenovo
+workday:lg
+workday:lockheedmartin
+greenhouse:landingai
+greenhouse:lilt
+greenhouse:labelbox
+lever:ltimindtree
+lever:lenskart
+lever:licious
+lever:leapfinance
+greenhouse:launchdarkly
+lever:lambdatest
+greenhouse:looker
+greenhouse:lightstep
+greenhouse:leanix
+greenhouse:lucid
+greenhouse:localstack
+greenhouse:lemonade
+greenhouse:lendingclub
+lever:leadsquared
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# M — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:microsoft
+workday:meta
+workday:micron
+workday:motorola
+workday:marvell
+lever:mongodb
+greenhouse:miro
+lever:myntra
+lever:meesho
+lever:makemytrip
+lever:mistral
+greenhouse:moveworks
+greenhouse:mosaicml
+lever:mindtree
+lever:mphasis
+lever:mastek
+workday:morganstanley
+workday:mastercard
+greenhouse:moodys
+greenhouse:monzo
+lever:moglix
+lever:mygate
+greenhouse:mixpanel
+greenhouse:matillion
+greenhouse:metabase
+lever:moengage
+greenhouse:mozilla
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# N — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:nvidia
+greenhouse:netflix
+workday:nokia
+workday:nec
+workday:nxp
+greenhouse:netapp
+greenhouse:nutanix
+greenhouse:naver
+greenhouse:neurala
+greenhouse:nanonets
+lever:nagarro
+lever:nykaa
+lever:nobrokerhood
+lever:ninjacart
+lever:navi
+lever:niyo
+lever:netradyne
+greenhouse:newrelic
+greenhouse:netlify
+greenhouse:neon
+greenhouse:nylas
+greenhouse:n8n
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# O — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:oracle
+greenhouse:openai
+greenhouse:observeai
+greenhouse:outreach
+greenhouse:okta
+greenhouse:optimizely
+lever:olx
+lever:ola
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# P — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:paypal
+greenhouse:palantir
+greenhouse:pinterest
+workday:panasonic
+workday:philips
+workday:pepsico
+greenhouse:paloaltonetworks
+greenhouse:purestorage
+greenhouse:perplexity
+greenhouse:pathAI
+lever:persistent
+workday:prudential
+lever:phonepe
+lever:paytm
+lever:policybazaar
+lever:postman
+lever:pinelabs
+lever:practo
+greenhouse:pagerduty
+greenhouse:pendo
+greenhouse:pingidentity
+greenhouse:plaid
+greenhouse:brex
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Q — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:qualcomm
+greenhouse:quantiphi
+greenhouse:quantexa
+greenhouse:qlik
+greenhouse:qualys
+ashby:qdrant
+lever:quikr
+lever:qure
+lever:quizizz
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# R — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:redhat
+greenhouse:robinhood
+greenhouse:roku
+workday:rakuten
+lever:razorpay
+greenhouse:ringcentral
+greenhouse:runwayml
+greenhouse:roboflow
+greenhouse:rasa
+lever:rsystems
+lever:rapido
+lever:rupeek
+greenhouse:redis
+greenhouse:retool
+greenhouse:render
+greenhouse:rudderstack
+greenhouse:rockset
+workday:royalbankofcanada
+greenhouse:revolut
+greenhouse:roche
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# S — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:salesforce
+workday:sap
+greenhouse:servicenow
+workday:siemens
+workday:samsung
+workday:sony
+greenhouse:spotify
+greenhouse:snap
+greenhouse:snowflake
+greenhouse:scaleai
+lever:stability
+greenhouse:snorkelai
+greenhouse:synthesia
+greenhouse:socure
+greenhouse:sift
+lever:soprasteria
+lever:sonata
+lever:sasken
+lever:swiggy
+lever:sharechat
+greenhouse:snyk
+greenhouse:supabase
+greenhouse:sentry
+lever:singlestore
+greenhouse:splunk
+greenhouse:stripe
+greenhouse:segment
+workday:sbi
+workday:standardchartered
+greenhouse:sanofi
+greenhouse:stryker
+greenhouse:shopify
+greenhouse:slack
+greenhouse:substack
+greenhouse:squarespace
+greenhouse:smartsheet
+lever:soroco
+lever:searce
+lever:sigtuple
+lever:skit
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# T — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:tesla
+workday:tencent
+workday:toshiba
+workday:texasinstruments
+workday:tmobile
+greenhouse:twilio
+greenhouse:tripadvisor
+greenhouse:tanium
+greenhouse:turing
+greenhouse:tempus
+greenhouse:tractable
+greenhouse:tecton
+greenhouse:thoughtspot
+workday:tcs
+lever:techmahindra
+greenhouse:thoughtworks
+lever:truecaller
+lever:tracxn
+lever:toppr
+lever:testbook
+lever:teachmint
+lever:turtlemint
+greenhouse:temporal
+greenhouse:timescale
+greenhouse:talend
+greenhouse:typeform
+workday:td
+greenhouse:transferwise
+greenhouse:tink
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# U — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:uipath
+lever:uniphore
+greenhouse:unitedhealth
+greenhouse:uber
+lever:urbancompany
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# V — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:vercel
+greenhouse:vmware
+greenhouse:visa
+greenhouse:verint
+greenhouse:verizon
+greenhouse:volkswagen
+lever:vernacular-ai
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# W — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+lever:wandb
+ashby:weaviate
+greenhouse:workday
+greenhouse:webflow
+greenhouse:wise
+greenhouse:wayve
+lever:wipro
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# X / Y / Z — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:xero
+greenhouse:yelp
+greenhouse:yellowai
+greenhouse:zendesk
+greenhouse:zoom
+greenhouse:zscaler
+lever:zepto
+lever:zomato
+greenhouse:zapier
+greenhouse:zenefits
+
+# ══════════════════════════════════════════════════════════════
+# ADD MORE COMPANIES BELOW — FORMAT: ats:slug
+# ══════════════════════════════════════════════════════════════
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MISSING COMPANIES — Added
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+workday:axisbank
+workday:apollohospitals
+greenhouse:arya
+greenhouse:abacus
+workday:aristanets
+workday:baidu
+workday:bytedance
+greenhouse:bmc
+workday:bnpparibas
+workday:bajajfinserv
+greenhouse:better
+greenhouse:bill
+workday:dxc
+lever:dream11
+workday:ea
+lever:hyperverge
+lever:kore
+lever:qure
+workday:twitter
+workday:tiktok
+greenhouse:hashicorp
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# U — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:uber
+greenhouse:unity
+greenhouse:uipath
+greenhouse:unilever
+workday:ups
+lever:urbancompany
+lever:uniphore
+greenhouse:userleap
+greenhouse:userflow
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# V — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:vercel
+greenhouse:vmware
+greenhouse:visa
+workday:verizon
+workday:volkswagen
+greenhouse:veeva
+greenhouse:vonage
+lever:vernacular-ai
+greenhouse:vanta
+greenhouse:verint
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# W — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+lever:wandb
+ashby:weaviate
+greenhouse:workday
+greenhouse:webflow
+greenhouse:wise
+greenhouse:wayve
+workday:walmart
+workday:wellsfargo
+greenhouse:wunderkind
+greenhouse:wrike
+greenhouse:whatfix
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# X — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:xero
+workday:xerox
+greenhouse:xilinx
+greenhouse:xperi
+lever:xenonstack
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Y — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:yelp
+greenhouse:yellowai
+workday:yahoo
+greenhouse:yotpo
+greenhouse:yext
+lever:yubi
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Z — COMPANIES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:zendesk
+greenhouse:zoom
+greenhouse:zscaler
+lever:zepto
+lever:zomato
+greenhouse:zapier
+greenhouse:zenefits
+greenhouse:zenoss
+greenhouse:zerto
+workday:zebra
+greenhouse:ziprecruiter
+lever:zuora
+
