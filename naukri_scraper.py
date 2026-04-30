@@ -1,13 +1,13 @@
 """
-🇮🇳 Naukri Job Scraper — RSS + Playwright Login Edition
+🇮🇳 Naukri Job Scraper — Playwright Stealth Edition
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Strategy (in order):
-  1. RSS feeds          — public, no auth, real-time
-  2. Naukri internal API — unauthenticated REST
-  3. Playwright login   — real browser login with NAUKRI_EMAIL / NAUKRI_PASSWORD
-     → Naukri uses Akamai bot-detection; playwright-stealth bypasses fingerprinting
-     → API calls made via page.evaluate() INSIDE the browser — Akamai cookies
-       stay in the browser and never need to be transferred to requests
+  1. RSS feeds          — public, real-time (often blocked by Akamai)
+  2. Naukri internal API — unauthenticated REST (often 406'd by Akamai)
+  3. Playwright stealth — headless Chromium navigates search URL, intercepts
+     the /jobapi/v3/search XHR that Naukri's own JS fires on page load.
+     NO LOGIN REQUIRED — jobs are public. Stealth bypasses Akamai page-load
+     bot detection. Works on GitHub Actions (Ubuntu) without credentials.
 seen_jobs.json dedup — only NEW job IDs trigger alert
 NO deletion of old IDs — only adds new ones ✅
 """
@@ -21,108 +21,52 @@ HEADERS = {
     "Referer":         "https://www.naukri.com/",
 }
 
-# ScraperAPI key (optional - only needed if Naukri blocks GitHub IPs)
-# Free tier: 5000 requests/month — signup at scraperapi.com
+# ScraperAPI key (optional)
 SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY", "")
 
-# ── Naukri Login Credentials ──────────────────────────────────
-# In GitHub Actions: set NAUKRI_EMAIL and NAUKRI_PASSWORD as repository secrets.
-# For local runs: create a .env file in this directory with:
-#   NAUKRI_EMAIL=your@email.com
-#   NAUKRI_PASSWORD=yourpassword
-def _load_dotenv():
-    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-    if not os.path.exists(env_path):
-        return
-    with open(env_path) as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, _, v = line.partition("=")
-                os.environ.setdefault(k.strip(), v.strip())
-
-_load_dotenv()
-
-NAUKRI_EMAIL    = os.environ.get("NAUKRI_EMAIL", "")
-NAUKRI_PASSWORD = os.environ.get("NAUKRI_PASSWORD", "")
-
-# Cached browser state — kept open across all searches in one run
-# Using page.evaluate() to call the API from inside the browser so Akamai
-# fingerprint cookies never need to leave the browser context.
-_naukri_stealth_cm   = None   # SyncWrappingContextManager (for cleanup)
-_naukri_browser      = None   # Playwright Browser
-_naukri_page         = None   # Playwright Page (reused for all fetch calls)
-_naukri_login_failed = False  # sentinel — prevents retrying after a failed login
+# ── Stealth browser state — opened once, reused for all searches ──
+_naukri_stealth_cm = None
+_naukri_browser    = None
+_naukri_page       = None
+_naukri_browser_failed = False  # sentinel — don't retry if browser failed to launch
 
 
-def _ensure_naukri_page():
+def _ensure_browser():
     """
-    Open a stealth headless browser, log in to Naukri, and return the live page.
-    The browser stays open so _fetch_authenticated() can reuse it for all searches
-    via page.evaluate() — keeping Akamai fingerprint cookies inside the browser.
-    Call _close_naukri_browser() after all searches to release resources.
+    Open a stealth headless Chromium browser (no login required).
+    Naukri's job search page fires /jobapi/v3/search XHR for ALL users
+    (logged in or not). We just need stealth to bypass Akamai's page-load
+    bot detection. The browser is reused for all searches in one run.
     """
-    global _naukri_stealth_cm, _naukri_browser, _naukri_page, _naukri_login_failed
+    global _naukri_stealth_cm, _naukri_browser, _naukri_page, _naukri_browser_failed
 
-    if _naukri_login_failed:
-        return None   # login already failed this run — don't retry 66+ times
-
+    if _naukri_browser_failed:
+        return None
     if _naukri_page is not None:
         return _naukri_page
 
-    # Re-read env in case _load_dotenv() ran after module load
-    email    = os.environ.get("NAUKRI_EMAIL", "")
-    password = os.environ.get("NAUKRI_PASSWORD", "")
-    if not email or not password:
-        return None
-
     try:
-        from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+        from playwright.sync_api import sync_playwright
         from playwright_stealth import Stealth
     except ImportError as e:
-        print(f"  [Naukri Login] ⚠️  Missing package: {e}")
-        print("  [Naukri Login] Run: pip install playwright playwright-stealth && playwright install --with-deps chromium")
+        print(f"  [Naukri Browser] ⚠️  Missing package: {e}")
+        print("  [Naukri Browser] Run: pip install playwright playwright-stealth && playwright install --with-deps chromium")
+        _naukri_browser_failed = True
         return None
 
-    print("  [Naukri Login] 🌐 Launching stealth headless browser for login...")
     try:
         _naukri_stealth_cm = Stealth().use_sync(sync_playwright())
         pw = _naukri_stealth_cm.start()
-
         _naukri_browser = pw.chromium.launch(headless=True)
         ctx = _naukri_browser.new_context(
             user_agent=HEADERS["User-Agent"],
             viewport={"width": 1280, "height": 800},
         )
         _naukri_page = ctx.new_page()
-
-        # 1. Open Naukri login page
-        _naukri_page.goto("https://www.naukri.com/nlogin/login", timeout=30000)
-        _naukri_page.wait_for_load_state("networkidle", timeout=20000)
-
-        # 2. Fill credentials (IDs confirmed from live page inspection)
-        _naukri_page.fill("#usernameField", email)
-        _naukri_page.fill("#passwordField", password)
-        # 3. Submit and wait for post-login page
-        _naukri_page.click("button[type='submit']")
-        try:
-            _naukri_page.wait_for_url("**/mnjuser/**", timeout=15000)
-        except PWTimeout:
-            _naukri_page.wait_for_load_state("networkidle", timeout=10000)
-
-        # 4. Verify we left the login page
-        if "nlogin" in _naukri_page.url:
-            print("  [Naukri Login] ❌ Login failed — check NAUKRI_EMAIL / NAUKRI_PASSWORD")
-            _naukri_login_failed = True
-            _close_naukri_browser()
-            return None
-
-        print("  [Naukri Login] ✅ Logged in successfully")
         return _naukri_page
-
     except Exception as e:
-        print(f"  [Naukri Login] ❌ Browser login error: {e}")
-        _naukri_login_failed = True
+        print(f"  [Naukri Browser] ❌ Failed to launch browser: {e}")
+        _naukri_browser_failed = True
         _close_naukri_browser()
         return None
 
@@ -140,18 +84,15 @@ def _close_naukri_browser():
     _naukri_stealth_cm = None
     _naukri_browser    = None
     _naukri_page       = None
-    # Note: _naukri_login_failed is NOT reset here — keeps the sentinel
-    # for the remainder of this process run to avoid retrying a bad login
 
 
-def _fetch_authenticated(slug: str, location: str) -> list:
+def _fetch_browser(slug: str, location: str) -> list:
     """
-    Fetch jobs by navigating to the Naukri search URL inside the logged-in browser
-    and intercepting the /jobapi/v3/search XHR response that Naukri's own JS sends.
-    This bypasses reCAPTCHA because the request is initiated by Naukri's own code
-    with all the correct headers, CSRF tokens, and Akamai fingerprint cookies.
+    Navigate to Naukri search URL in a stealth browser and intercept the
+    /jobapi/v3/search XHR that Naukri's own JS fires on page load.
+    No login required — jobs are publicly visible to all users.
     """
-    page = _ensure_naukri_page()
+    page = _ensure_browser()
     if page is None:
         return []
 
@@ -363,24 +304,20 @@ def _fetch_api(slug: str, location: str) -> list:
 
 def scrape_naukri() -> list:
     """
-    Main entry — scrapes Naukri for all target job titles
-    Strategy (tried in order until one works):
-      1. RSS feed      — public, no auth, real-time
-      2. Naukri API    — unauthenticated REST call
-      3. Login session — authenticated via NAUKRI_EMAIL / NAUKRI_PASSWORD
-         Bypasses IP blocks; set as GitHub Secrets to enable
-    Returns deduplicated list — seen_jobs.json handles final dedup
-    NO deletion of old IDs — only new job IDs added ✅
+    Main entry — scrapes Naukri for all target job titles.
+    Strategy (tried in order until one works per search):
+      1. RSS feed      — fast, public
+      2. Naukri API    — unauthenticated REST
+      3. Browser (XHR) — stealth Chromium navigates search page, intercepts
+                         the /jobapi/v3/search XHR Naukri fires automatically.
+                         No login needed. Works on GitHub Actions.
+    Returns deduplicated list — seen_jobs.json handles final dedup.
     """
     all_jobs = []
     seen_ids = set()
     any_source_worked = False
 
-    login_available = bool(NAUKRI_EMAIL and NAUKRI_PASSWORD)
-
     print(f"  [Naukri] Checking {len(RSS_SEARCHES) * len(LOCATIONS)} searches...")
-    if login_available:
-        print(f"  [Naukri] 🔐 Login credentials found — will use if RSS/API blocked")
 
     for slug, label in RSS_SEARCHES:
         for location in LOCATIONS:
@@ -392,9 +329,9 @@ def scrape_naukri() -> list:
             if not jobs:
                 jobs = _fetch_api(slug, location)
 
-            # ── Try 3: Authenticated session ──────────────────────
-            if not jobs and login_available:
-                jobs = _fetch_authenticated(slug, location)
+            # ── Try 3: Stealth browser XHR interception ───────────
+            if not jobs:
+                jobs = _fetch_browser(slug, location)
 
             if jobs and not any_source_worked:
                 any_source_worked = True
@@ -414,15 +351,8 @@ def scrape_naukri() -> list:
             time.sleep(0.3)
 
     if not any_source_worked:
-        if login_available:
-            print("  [Naukri] ⚠️  All sources failed (RSS, API, Login)")
-            print("  [Naukri] 💡 Verify NAUKRI_EMAIL / NAUKRI_PASSWORD are correct")
-        else:
-            print("  [Naukri] ⚠️  RSS and API are blocked by Naukri")
-            print("  [Naukri] 💡 Add NAUKRI_EMAIL + NAUKRI_PASSWORD as GitHub Secrets to bypass")
-            print("  [Naukri] 💡 Or add SCRAPER_API_KEY (scraperapi.com, 5000 req/month free)")
+        print("  [Naukri] ⚠️  All sources (RSS, API, Browser) returned 0 jobs")
 
-    # Close the browser if it was opened for authenticated searches
     _close_naukri_browser()
 
     print(f"[Naukri] Total: {len(all_jobs)} unique jobs found")

@@ -1,28 +1,18 @@
 """
-Quick local test for Naukri Playwright login + job search.
-Usage:
-  set NAUKRI_EMAIL=your@email.com
-  set NAUKRI_PASSWORD=yourpassword
-  python naukri_login_test.py
+Quick local test for Naukri browser-based job search (no login required).
+Usage: python naukri_login_test.py
 """
-import os, sys
-
-if not os.environ.get("NAUKRI_EMAIL"):
-    print("Set NAUKRI_EMAIL and NAUKRI_PASSWORD env vars before running this test.")
-    sys.exit(1)
-
+import sys
 sys.path.insert(0, ".")
-from naukri_scraper import _ensure_naukri_page, _fetch_authenticated, _close_naukri_browser
+from naukri_scraper import _ensure_browser, _fetch_browser, _close_naukri_browser
 
-print("=== Testing Playwright stealth login ===")
-page = _ensure_naukri_page()
+print("=== Testing stealth browser launch ===")
+page = _ensure_browser()
 print("Page:", page)
 
 if page:
-    print(f"\nPost-login URL: {page.url}")
-
-    print("\n=== Testing in-browser job search (AI Engineer, India) ===")
-    jobs = _fetch_authenticated("ai-engineer", "india")
+    print("\n=== Testing browser job search (AI Engineer, India) ===")
+    jobs = _fetch_browser("ai-engineer", "india")
     print(f"Jobs found: {len(jobs)}")
     for j in jobs[:5]:
         print(f"  - {j['title']} @ {j['company']} | {j['location']} | {j['posted']}")
