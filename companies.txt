@@ -1009,6 +1009,592 @@ greenhouse:ziprecruiter
 lever:zuora
 
 # ══════════════════════════════════════════════════════════════
+# EXPANSION PACK — 400+ MORE COMPANIES (total ~1050+)
+# Priority: Remote/Global → Pune offices → India → International
+# Target roles: Java Backend + AI/ML/GenAI Engineer, 3 YOE
+# All entries are in ats:slug format — bot checks every one
+# ══════════════════════════════════════════════════════════════
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# REMOTE-FIRST — USD SALARY — HIRE GLOBALLY FROM INDIA
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# E-commerce / supply chain remote
+greenhouse:supplyhouse
+greenhouse:wayfair
+greenhouse:shopify
+greenhouse:shopmonkey
+greenhouse:faire
+greenhouse:ordergroove
+greenhouse:brightpearl
+greenhouse:linnworks
+greenhouse:skubana
+greenhouse:veeqo
+# Dev tools / infra remote
+greenhouse:sourcegraph
+greenhouse:jetbrains
+greenhouse:tailscale
+greenhouse:planetscale
+greenhouse:neondb
+greenhouse:turso
+greenhouse:xata
+greenhouse:cockroachlabs
+greenhouse:yugabyte
+greenhouse:singlestore
+lever:arangodb
+greenhouse:dgraph
+greenhouse:weaviate
+greenhouse:qdrant
+greenhouse:chroma
+greenhouse:milvus
+# Product / Design tools remote
+lever:pitch
+lever:maze
+lever:canny
+lever:pave
+greenhouse:whereby
+lever:toggl
+greenhouse:loom
+greenhouse:grain
+greenhouse:krisp
+greenhouse:otter
+greenhouse:fireflies
+# CRM / Sales remote
+greenhouse:close
+greenhouse:frontapp
+greenhouse:pipedrive
+greenhouse:salesloft
+greenhouse:clari
+greenhouse:chorus
+greenhouse:mindtickle
+greenhouse:seismic
+greenhouse:allego
+# Customer success / marketing remote
+greenhouse:braze
+greenhouse:customerio
+greenhouse:appcues
+greenhouse:userleap
+greenhouse:sprig
+greenhouse:pendo
+greenhouse:chameleon
+greenhouse:userpilot
+greenhouse:walkme
+# HR tech / People ops remote
+greenhouse:bamboohr
+greenhouse:justworks
+greenhouse:trinet
+greenhouse:gusto
+greenhouse:lattice
+greenhouse:leapsome
+greenhouse:15five
+greenhouse:cultureamp
+greenhouse:betterworks
+greenhouse:workhuman
+greenhouse:bob
+greenhouse:personio
+# Payments / Fintech remote
+greenhouse:gocardless
+greenhouse:truelayer
+greenhouse:yapily
+greenhouse:railsbank
+greenhouse:clearbank
+greenhouse:form3
+greenhouse:mambu
+greenhouse:backbase
+greenhouse:finastra
+greenhouse:temenos
+greenhouse:thought-machine
+greenhouse:mambu
+# Security / Identity remote
+greenhouse:crowdstrike
+greenhouse:sentinelone
+greenhouse:lacework
+greenhouse:wiz
+greenhouse:orca
+greenhouse:snyk
+greenhouse:sonatype
+greenhouse:sonarsource
+greenhouse:checkmarx
+greenhouse:veracode
+greenhouse:cyberark
+greenhouse:sailpoint
+greenhouse:okta
+greenhouse:jumpcloud
+greenhouse:beyondtrust
+greenhouse:delinea
+greenhouse:proofpoint
+greenhouse:mimecast
+greenhouse:abnormalsecurity
+greenhouse:netskope
+greenhouse:zscaler
+greenhouse:menlosecurity
+greenhouse:ironnet
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# AI / GENAI / LLM — NEWER COMPANIES (remote-first, USD)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:ai21labs
+greenhouse:aleph-alpha
+ashby:fireworks-ai
+ashby:lambdalabs
+greenhouse:coreweave
+greenhouse:runpod
+ashby:xai
+greenhouse:deepmind
+greenhouse:inflection
+greenhouse:imbue
+greenhouse:adept
+greenhouse:cohere
+greenhouse:huggingface
+greenhouse:mistral
+# MLOps / observability
+greenhouse:neptune-ai
+greenhouse:clearml
+greenhouse:zenml
+greenhouse:hopsworks
+greenhouse:chalk
+greenhouse:fennel
+greenhouse:comet-ml
+greenhouse:evidently-ai
+greenhouse:deepchecks
+lever:label-studio
+greenhouse:superannotate
+greenhouse:datasaur
+greenhouse:humanloop
+greenhouse:scale
+# AI compute infra
+lever:coreweave
+greenhouse:lambdacloud
+greenhouse:crusoe
+greenhouse:voltagepark
+greenhouse:fluidstack
+# Agents / LLM orchestration
+ashby:crewai
+ashby:langchain
+greenhouse:autogen
+greenhouse:dspy
+greenhouse:semantic-kernel
+greenhouse:llamaindex
+greenhouse:haystack
+greenhouse:flowise
+greenhouse:n8n
+greenhouse:make
+greenhouse:activepieces
+# AI applications
+greenhouse:synthesia
+greenhouse:runway
+greenhouse:pika
+greenhouse:luma
+greenhouse:elevenlabs
+greenhouse:suno
+greenhouse:udio
+greenhouse:heygen
+greenhouse:descript
+greenhouse:assemblyai
+greenhouse:deepgram
+greenhouse:whisper
+greenhouse:rev
+greenhouse:verbit
+# AI code / dev assistants
+lever:codeium
+ashby:cursor
+greenhouse:tabnine
+greenhouse:codium
+greenhouse:copilot
+greenhouse:replit
+greenhouse:gitpod
+greenhouse:stackblitz
+greenhouse:codesandbox
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# PUNE / INDIA — LARGE TECH OFFICES (onsite + remote India)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Global MNCs with big Pune development centers
+workday:cummins
+workday:bnymellon
+workday:ubs
+workday:wellsfargo
+workday:vodafone
+workday:eaton
+workday:emerson
+workday:abb
+workday:sandvik
+workday:atlascopco
+workday:schaeffler
+workday:zf
+workday:continental
+workday:mahindra
+workday:bajajfinance
+workday:axisbank
+workday:kotakbank
+workday:icicibank
+workday:ltts
+workday:lntinfotech
+# IT services with Pune office
+greenhouse:synechron
+lever:xoriant
+lever:zensar
+lever:cyient
+greenhouse:endava
+greenhouse:epam
+greenhouse:luxoft
+greenhouse:globant
+lever:niit
+lever:birlasoft
+lever:sasken
+greenhouse:hexaware
+lever:mphasis
+lever:ltimindtree
+# Fintech/banking tech Pune
+greenhouse:finastra
+greenhouse:temenos
+greenhouse:intellect
+lever:nucleus-software
+greenhouse:polaris
+lever:majesco
+greenhouse:iflex
+greenhouse:i-flex
+# Product companies Pune
+lever:cummins-digital
+lever:persistentdge
+greenhouse:amdocs
+lever:quickheal
+lever:calypso
+greenhouse:pricewaterhousecoopers
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MORE INDIA STARTUPS & TECH
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Fintech
+lever:smallcase
+lever:indmoney
+lever:fisdom
+lever:upstox
+lever:angelone
+lever:fampay
+lever:freopay
+lever:jupiter
+lever:fi
+lever:kreditbee
+lever:lazypay
+lever:axio
+lever:cashfree
+lever:decentro
+lever:setu
+lever:m2p
+lever:epifi
+lever:bank-open
+lever:open
+lever:signzy
+lever:karza
+lever:digio
+lever:bureau
+lever:perfios
+lever:credgenics
+lever:credavenue
+# Logistics/supply chain
+lever:porter
+lever:shadowfax
+lever:shiprocket
+lever:pickrr
+lever:ecomexpress
+lever:xpressbees
+lever:rivigo
+lever:blackbuck
+lever:locus
+lever:loginext
+lever:fareye
+lever:blowhorn
+# D2C / Commerce
+lever:mamaearth
+lever:boat
+lever:noise
+lever:pepperfry
+lever:furlenco
+lever:homelane
+lever:livspace
+lever:housejoy
+lever:sulekha
+lever:99acres
+lever:magicbricks
+lever:commonfloor
+lever:nobroker
+lever:nestaway
+# Health / Pharma tech
+lever:1mg
+lever:pharmeasy
+lever:netmeds
+lever:medibuddy
+lever:mfine
+lever:portea
+lever:pristyncare
+lever:nightingales
+lever:healthplix
+lever:innovaccer
+lever:niramai
+lever:10xgenomics
+# EdTech India
+lever:unacademy
+lever:upgrad
+lever:physicswallah
+lever:scaler
+lever:vedantu
+lever:doubtnut
+lever:embibe
+lever:meritnation
+lever:toppr
+lever:whitehatjr
+lever:extramarks
+lever:classplus
+# Gaming/Entertainment
+lever:dream11
+lever:games24x7
+lever:mpl
+lever:winzo
+lever:nazara
+lever:nodwin
+lever:glance
+lever:roposo
+lever:sharechat
+lever:mohalla
+lever:koo
+lever:josh
+lever:moj
+# SaaS/B2B India
+lever:saastronautics
+lever:capillary
+lever:netcore
+lever:webengage
+lever:moengage
+lever:clevertap
+lever:insider
+lever:gupshup
+lever:kaleyra
+lever:exotel
+lever:ozonetel
+lever:knowlarity
+lever:servetel
+lever:mcube
+lever:kapture
+lever:freshchat
+lever:ameyo
+lever:avaya-india
+lever:acefone
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MORE US TECH (strong India engineering presence)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Cloud / DevOps
+greenhouse:hashicorp
+greenhouse:terraform
+greenhouse:pulumi
+greenhouse:crossplane
+greenhouse:gitops
+greenhouse:argocd
+greenhouse:fluxcd
+greenhouse:tekton
+greenhouse:jenkins
+greenhouse:circleci
+greenhouse:buildkite
+greenhouse:codefresh
+greenhouse:cloudbees
+greenhouse:jfrog
+greenhouse:sonatype
+greenhouse:artifactory
+greenhouse:nexus
+greenhouse:harbor
+greenhouse:anchore
+# Observability / Monitoring
+greenhouse:datadog
+greenhouse:newrelic
+greenhouse:dynatrace
+greenhouse:appdynamics
+greenhouse:solarwinds
+greenhouse:logicmonitor
+greenhouse:chronosphere
+greenhouse:honeycomb
+greenhouse:lightstep
+greenhouse:grafana
+greenhouse:prometheus
+greenhouse:instana
+greenhouse:sumo-logic
+greenhouse:loggly
+greenhouse:papertrail
+greenhouse:sentry
+greenhouse:rollbar
+greenhouse:bugsnag
+greenhouse:raygun
+greenhouse:appoptics
+# Data / Analytics
+greenhouse:snowflake
+greenhouse:databricks
+greenhouse:dbtlabs
+greenhouse:fivetran
+greenhouse:airbyte
+greenhouse:hightouch
+greenhouse:census
+greenhouse:segment
+greenhouse:rudderstack
+greenhouse:mixpanel
+greenhouse:amplitude
+greenhouse:heap
+greenhouse:fullstory
+greenhouse:contentsquare
+greenhouse:hotjar
+greenhouse:mouseflow
+greenhouse:sessioncam
+greenhouse:smartlook
+greenhouse:glassbox
+greenhouse:quantum-metric
+# Gaming (US)
+greenhouse:roblox
+greenhouse:niantic
+lever:zynga
+greenhouse:scopely
+greenhouse:kabam
+greenhouse:jam-city
+greenhouse:playtika
+greenhouse:ncsoft
+greenhouse:nexon
+greenhouse:riot-games
+greenhouse:epic
+greenhouse:activision
+greenhouse:2k
+greenhouse:ea
+greenhouse:ubisoft
+greenhouse:square-enix
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MORE EUROPE (open to India applicants / remote)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:booking
+greenhouse:trivago
+greenhouse:skyscanner
+greenhouse:hellofresh
+greenhouse:treatwell
+greenhouse:deliveryhero
+greenhouse:zalando
+greenhouse:ottogroup
+greenhouse:mediamarkt
+greenhouse:adidas
+greenhouse:puma
+greenhouse:bmw
+greenhouse:mercedes
+greenhouse:volkswagen
+greenhouse:bosch
+greenhouse:siemens
+greenhouse:sap
+greenhouse:infineon
+greenhouse:teamviewer
+greenhouse:adjust
+greenhouse:contentful
+greenhouse:commercetools
+greenhouse:spryker
+greenhouse:shopware
+greenhouse:magnolia
+greenhouse:storyblok
+greenhouse:sanity
+greenhouse:prismic
+greenhouse:contentstack
+greenhouse:kentico
+greenhouse:sitecore
+greenhouse:episerver
+greenhouse:umbraco
+# EU Fintech
+greenhouse:n26
+greenhouse:mollie
+greenhouse:sumup
+greenhouse:paysafe
+greenhouse:worldline
+greenhouse:ingenico
+greenhouse:ebury
+greenhouse:bibby
+greenhouse:billie
+greenhouse:moss
+greenhouse:spendesk
+greenhouse:pleo
+greenhouse:soldo
+greenhouse:payhawk
+greenhouse:circula
+greenhouse:yokoy
+greenhouse:rydoo
+greenhouse:expensya
+# EU AI / DeepTech
+greenhouse:deepmind
+greenhouse:graphcore
+greenhouse:arm
+greenhouse:improbable
+greenhouse:wayve
+greenhouse:tractable
+greenhouse:onfido
+greenhouse:benevolentai
+greenhouse:healx
+greenhouse:exscientia
+greenhouse:recursion
+greenhouse:insitro
+greenhouse:relay-tx
+greenhouse:schrodinger
+greenhouse:atomwise
+greenhouse:insilico
+greenhouse:xtalpi
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# JAPAN / SOUTH KOREA (remote & relocation roles)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:coupang
+greenhouse:toss
+greenhouse:kakao
+greenhouse:kakaobank
+greenhouse:kakaopay
+greenhouse:ncsoft
+greenhouse:netmarble
+greenhouse:nhn
+greenhouse:krafton
+greenhouse:wemade
+greenhouse:pearlabyss
+greenhouse:smilegate
+greenhouse:nexon
+greenhouse:neowiz
+greenhouse:com2us
+greenhouse:gamevil
+greenhouse:devsisters
+greenhouse:vng
+greenhouse:sea
+greenhouse:shopee
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# HEALTHTECH / BIOTECH (global, strong remote)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+greenhouse:unitedhealth
+greenhouse:optum
+greenhouse:athenahealth
+greenhouse:medidata
+greenhouse:veeva
+greenhouse:flatiron
+greenhouse:tempus
+greenhouse:pathai
+greenhouse:insitro
+greenhouse:recursion
+greenhouse:exscientia
+greenhouse:insilico
+greenhouse:xtalpi
+greenhouse:atomwise
+greenhouse:relay-therapeutics
+greenhouse:schrodinger
+greenhouse:benchling
+greenhouse:biosymetrics
+greenhouse:somalogic
+greenhouse:invitae
+greenhouse:genalyte
+greenhouse:color-genomics
+greenhouse:freenome
+greenhouse:grail
+greenhouse:guardant
+greenhouse:natera
+lever:niramai
+lever:qure
+lever:sigtuple
+
+# ══════════════════════════════════════════════════════════════
 # AI-FIRST COMPANIES (missing from A-Z sections above)
 # These were listed as bare names in the header — now in proper format
 # ══════════════════════════════════════════════════════════════

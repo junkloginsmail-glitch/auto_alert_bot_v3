@@ -137,15 +137,19 @@ def load_companies() -> list:
         print(f"❌ {COMPANIES_FILE} not found!")
         return []
     companies = []
-    with open(COMPANIES_FILE) as f:
+    seen_slugs = set()
+    with open(COMPANIES_FILE, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
             if ":" in line:
                 ats, slug = line.split(":", 1)
-                companies.append((ats.strip().lower(), slug.strip().lower()))
-    print(f"📋 Loaded {len(companies)} companies")
+                key = (ats.strip().lower(), slug.strip().lower())
+                if key not in seen_slugs:   # skip duplicates in file
+                    seen_slugs.add(key)
+                    companies.append(key)
+    print(f"📋 Loaded {len(companies)} companies (deduped)")
     return companies
 
 # ──────────────────────────────────────────────────────
@@ -539,6 +543,18 @@ def main():
             skip_location += 1
             continue
         matched.append(j)
+
+    # Sort: Remote / worldwide first → Pune second → rest
+    def _location_priority(job):
+        loc = job.get("location", "").lower()
+        if any(w in loc for w in ["remote", "worldwide", "anywhere", "distributed", "global"]):
+            return 0
+        if "pune" in loc:
+            return 1
+        if any(w in loc for w in ["india", "bengaluru", "bangalore", "hyderabad", "mumbai", "chennai", "noida", "gurgaon"]):
+            return 2
+        return 3
+    matched.sort(key=_location_priority)
 
     print(f"\n{'━'*60}")
     print(f"📊 ATS Breakdown:")
