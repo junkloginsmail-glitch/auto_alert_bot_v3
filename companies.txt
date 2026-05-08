@@ -1008,3 +1008,147 @@ workday:zebra
 greenhouse:ziprecruiter
 lever:zuora
 
+# ══════════════════════════════════════════════════════════════
+# AI-FIRST COMPANIES (missing from A-Z sections above)
+# These were listed as bare names in the header — now in proper format
+# ══════════════════════════════════════════════════════════════
+
+# ── Core LLM / Foundation Model labs ─────────────────
+ashby:anthropic
+ashby:elevenlabs
+greenhouse:groq
+lever:togetherai
+ashby:modal
+lever:codeium
+ashby:cognition
+lever:lumalabs
+greenhouse:characterai
+lever:inflection
+ashby:cursor
+
+# ── AI Infra / Vector DBs / MLOps ────────────────────
+greenhouse:pinecone
+lever:predibase
+lever:baseten
+lever:encord
+lever:lightningai
+lever:braintrust
+ashby:langchain
+greenhouse:chroma
+lever:unstructured
+lever:arcee
+lever:replit
+
+# ══════════════════════════════════════════════════════════════
+# FULLY REMOTE — USD SALARY — HIRE FROM INDIA
+# (remote-first companies known to hire Indian engineers globally)
+# ══════════════════════════════════════════════════════════════
+greenhouse:automattic
+greenhouse:zapier
+lever:doist
+lever:close
+greenhouse:helpscout
+greenhouse:sourcegraph
+greenhouse:supplyhouse
+greenhouse:1password
+greenhouse:bitwarden
+greenhouse:duckduckgo
+greenhouse:notion
+ashby:linear
+lever:toptal
+greenhouse:rippling
+greenhouse:loom
+greenhouse:calendly
+greenhouse:mural
+greenhouse:mercury
+greenhouse:ramp
+lever:remote
+greenhouse:oyster
+ashby:fly
+ashby:replit
+lever:wikimedia
+greenhouse:brave
+
+# ══════════════════════════════════════════════════════════════
+# EUROPE TECH — REMOTE ROLES (open to global / India applicants)
+# ══════════════════════════════════════════════════════════════
+
+# ── EU Fintech / Payments ─────────────────────────────
+greenhouse:n26
+lever:mollie
+greenhouse:sumup
+greenhouse:paysafe
+lever:adyen
+
+# ── EU SaaS / Product ────────────────────────────────
+greenhouse:personio
+greenhouse:contentful
+greenhouse:adjust
+greenhouse:teamviewer
+lever:skyscanner
+greenhouse:booking
+greenhouse:trivago
+greenhouse:hellofresh
+greenhouse:treatwell
+greenhouse:deliveryhero
+greenhouse:zalando
+
+# ── EU AI / DeepTech ─────────────────────────────────
+greenhouse:improbable
+greenhouse:graphcore
+greenhouse:wayve
+greenhouse:tractable
+greenhouse:synthesia
+greenhouse:onfido
+greenhouse:benevolentai
+
+# ══════════════════════════════════════════════════════════════
+# JAPAN / SOUTH KOREA TECH — REMOTE ROLES
+# ══════════════════════════════════════════════════════════════
+greenhouse:smartnews
+lever:paidy
+greenhouse:linecorp
+lever:freee
+greenhouse:carousell
+greenhouse:kakaoenterprise
+greenhouse:krafton
+
+# ══════════════════════════════════════════════════════════════
+# CHINA / GLOBAL TECH GIANTS
+# ══════════════════════════════════════════════════════════════
+greenhouse:bytedance
+greenhouse:shein
+greenhouse:baiduusa
+
+# ══════════════════════════════════════════════════════════════
+# SINGAPORE / SOUTHEAST ASIA TECH
+# ══════════════════════════════════════════════════════════════
+greenhouse:grab
+greenhouse:sea
+greenhouse:shopee
+greenhouse:gojek
+greenhouse:tokopedia
+greenhouse:traveloka
+greenhouse:carousell
+greenhouse:ninjavan
+greenhouse:lalamove
+
+# ══════════════════════════════════════════════════════════════
+# US ENTERPRISE / CLOUD — strong India hiring with remote options
+# ══════════════════════════════════════════════════════════════
+greenhouse:ripple
+greenhouse:brex
+greenhouse:ramp
+greenhouse:mercury
+greenhouse:openai
+greenhouse:scale
+lever:figma
+greenhouse:notion
+greenhouse:linear
+greenhouse:loom
+greenhouse:miro
+greenhouse:retool
+greenhouse:postman
+lever:browserstack
+lever:lambdatest
+
