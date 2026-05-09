@@ -88,9 +88,12 @@ ACCEPT_LOCATIONS = [
     "india", "bangalore", "bengaluru", "pune", "hyderabad",
     "mumbai", "chennai", "delhi", "noida", "gurgaon",
     "kolkata", "ahmedabad", "kochi", "trivandrum",
-    "remote", "worldwide", "global", "anywhere",
+    "remote", "work from home", "wfh", "work-from-home",
+    "worldwide", "global", "anywhere",
     "work from anywhere", "distributed",
     "visa", "sponsor", "relocation", "",
+    # Japan/Korea — applicants can relocate / remote-open roles
+    "tokyo", "osaka", "seoul", "singapore",
 ]
 
 BLOCK_LOCATIONS = [

@@ -1738,3 +1738,44 @@ greenhouse:postman
 lever:browserstack
 lever:lambdatest
 
+# ══════════════════════════════════════════════════════════════
+# JAPAN & KOREA TECH — Full List (user-requested, May 2026)
+# Verified ATS slugs from careers pages
+# ══════════════════════════════════════════════════════════════
+
+# ── Easiest Entry — Active International Hiring ───────────────
+greenhouse:mercari               # Japan's first unicorn — truly global team
+workday:rakuten                  # English official language — roles in Tokyo
+greenhouse:smarthr               # HR SaaS unicorn — $96M General Atlantic 2025
+greenhouse:preferred-networks    # Japan top AI lab — Toyota/Fanuc/Gov partnerships
+lever:woven-by-toyota            # Toyota autonomous mobility — strong English env
+greenhouse:soracom               # IoT cloud — global English teams
+greenhouse:sakanaai              # AI research lab — ALE-Agent won programming contest 2026
+
+# ── Mid-Tier — English Friendly ──────────────────────────────
+lever:freee                      # Cloud accounting SaaS — int'l devs
+greenhouse:moneyforward          # Fintech SaaS — backend + ML engineers
+greenhouse:linecorp              # LY Corp (LINE+Yahoo Japan) — Go/Kotlin/Java
+greenhouse:smartnews             # ML news curation — 50M+ global users
+greenhouse:paypay                # Japan #1 payments platform — 60M+ users
+
+# ── Growing Scale-ups ─────────────────────────────────────────
+greenhouse:layerx                # DX + blockchain — fullstack + AI/ML roles
+greenhouse:loglass               # FP&A SaaS — Sequoia-backed — ¥7B Series A
+greenhouse:timee                 # Gig economy platform — Japan fastest growing
+greenhouse:newmo                 # Ride-hailing — ¥18.7B raised first year
+greenhouse:autify                # AI QA automation — international dev team
+greenhouse:beatrust              # Enterprise collaboration software
+
+# ── Domestically Strong but Tech-Forward ─────────────────────
+greenhouse:cybozu                # Collaboration SaaS (Kintone, Garoon)
+greenhouse:sansan                # B2B contact mgmt — 7000+ enterprise clients
+greenhouse:paidy                 # BNPL fintech (PayPal acquired)
+
+# ── Korea Tech (strong eng culture, some global roles) ────────
+greenhouse:coupang               # Korea's Amazon — massive engineering scale
+greenhouse:toss                  # Super-app fintech unicorn
+greenhouse:kakaoenterprise       # Kakao cloud + AI enterprise
+greenhouse:krafton               # Gaming (PUBG) — strong backend + ML
+greenhouse:devsisters            # Mobile gaming (Cookie Run)
+greenhouse:vng                   # Vietnam tech giant — backend + ML

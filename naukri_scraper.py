@@ -108,9 +108,10 @@ def _fetch_browser(slug: str, location: str) -> list:
 
     page.on("response", on_response)
     try:
-        # sort=3 = Date (newest first); jobAge=1 = posted in last 24h
-        # dedup via seen_jobs.json ensures only jobs since last run alert
-        url = f"https://www.naukri.com/{slug}-jobs-in-{location}?sort=3&jobAge=1"
+        # sort=3 = Date (newest first); jobAge=3 = posted in last 3 days
+        # jobAge=1 was too tight and missed many good jobs between 24-72h
+        # seen_jobs.json dedup prevents re-alerting already-sent jobs
+        url = f"https://www.naukri.com/{slug}-jobs-in-{location}?sort=3&jobAge=3"
         page.goto(url, timeout=30000, wait_until="domcontentloaded")
         # Wait briefly for in-flight XHR to complete after DOM load
         page.wait_for_timeout(3000)
@@ -154,6 +155,7 @@ RSS_SEARCHES = [
     ("genai-engineer",             "GenAI Engineer"),
     ("llm-engineer",               "LLM Engineer"),
     ("agentic-ai",                 "Agentic AI"),
+    ("ai-agent-developer",         "AI Agent Developer"),
     ("nlp-engineer",               "NLP Engineer"),
     ("machine-learning-engineer",  "Machine Learning Engineer"),
     ("ml-engineer",                "ML Engineer"),
@@ -165,6 +167,9 @@ RSS_SEARCHES = [
     ("ai-backend-engineer",        "AI Backend Engineer"),
     ("ai-developer",               "AI Developer"),
     ("conversational-ai",          "Conversational AI"),
+    ("prompt-engineer",            "Prompt Engineer"),
+    ("data-scientist",             "Data Scientist"),
+    ("ai-ml-engineer",             "AI ML Engineer"),
     # Java / Backend
     ("java-developer",             "Java Developer"),
     ("java-backend-developer",     "Java Backend Developer"),
@@ -173,20 +178,26 @@ RSS_SEARCHES = [
     ("java-microservices",         "Java Microservices"),
     ("java-full-stack-developer",  "Java Full Stack Developer"),
     ("java-software-engineer",     "Java Software Engineer"),
+    ("spring-boot-microservices",  "Spring Boot Microservices"),
     # Python Backend
     ("python-backend-developer",   "Python Backend Developer"),
     ("python-developer",           "Python Developer"),
     ("fastapi-developer",          "FastAPI Developer"),
     ("python-ai-developer",        "Python AI Developer"),
+    ("django-developer",           "Django Developer"),
     # General Backend / SWE
     ("backend-developer",          "Backend Developer"),
     ("backend-engineer",           "Backend Engineer"),
     ("software-engineer",          "Software Engineer"),
     ("full-stack-developer",       "Full Stack Developer"),
     ("sde-2",                      "SDE 2"),
+    ("software-development-engineer", "Software Development Engineer"),
 ]
 
-LOCATIONS = ["india", "remote"]
+# Locations searched on Naukri
+# NOTE: Naukri remote jobs URL uses 'work-from-home' not 'remote'
+# Priority order: work-from-home (remote) → pune → bangalore → india
+LOCATIONS = ["work-from-home", "pune", "bangalore", "india"]
 
 def _fetch_rss(slug: str, location: str) -> list:
     """
@@ -271,7 +282,7 @@ def _fetch_api(slug: str, location: str) -> list:
                 "location":     location,
                 "experience":   0,
                 "experienceDD": 6,
-                "jobAge":       1,
+                "jobAge":       3,   # last 3 days (was 1 — too tight)
                 "sort":         3,   # 3 = Date (most recent first)
             },
             headers=HEADERS,
