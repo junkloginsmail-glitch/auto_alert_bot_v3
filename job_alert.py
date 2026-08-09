@@ -128,9 +128,11 @@ TARGET_ROLES = [
     "software engineer", "software developer",
     "full stack engineer", "fullstack engineer",
     "full stack developer", "fullstack developer",
+    "Java full stack engineer", "Java fullstack engineer",
+    "React developer", "React engineer", "Node.js developer", "Node.js engineer", "Java + React Fullstack"    
     "java spring", "spring boot engineer",
     # AI / ML roles
-    "ai engineer", "ai developer",
+    "ai engineer", "ai developer", "Agen"
     "ml engineer", "machine learning engineer",
     "genai engineer", "gen ai engineer",
     "llm engineer", "nlp engineer",
@@ -176,8 +178,7 @@ EXCLUDE_ROLES = [
 
 # ── Companies to exclude (mass hirers, spam) ──────────
 EXCLUDE_COMPANIES = [
-    "infosys", "accenture",
-    "tcs", "wipro", "cognizant",  # Other mass hirers (optional)
+    "infosys", "accenture", # Other mass hirers (optional)
 ]
 
 # ── Job status keywords to exclude ────────────────────
