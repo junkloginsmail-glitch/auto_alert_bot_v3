@@ -174,6 +174,18 @@ EXCLUDE_ROLES = [
     "data analyst",  # not engineering
 ]
 
+# ── Companies to exclude (mass hirers, spam) ──────────
+EXCLUDE_COMPANIES = [
+    "infosys", "accenture",
+    "tcs", "wipro", "cognizant",  # Other mass hirers (optional)
+]
+
+# ── Job status keywords to exclude ────────────────────
+EXCLUDE_JOB_STATUS = [
+    "closed", "no longer accepting", "position filled",
+    "hiring closed", "applications closed", "not accepting",
+]
+
 # ── Location filter ───────────────────────────────────
 ACCEPT_LOCATIONS = [
     "india", "bangalore", "bengaluru", "pune", "hyderabad",
@@ -222,6 +234,16 @@ def is_relevant_location(location: str) -> bool:
     ]):
         return True
     return False
+
+def is_excluded_company(company: str) -> bool:
+    """Check if company should be excluded (mass hirers, spam)"""
+    comp = company.lower().strip()
+    return any(exc in comp for exc in EXCLUDE_COMPANIES)
+
+def is_job_closed(title: str, description: str = "") -> bool:
+    """Check if job posting indicates it's closed"""
+    text = (title + " " + description).lower()
+    return any(status in text for status in EXCLUDE_JOB_STATUS)
 
 # ──────────────────────────────────────────────────────
 # LOAD COMPANIES FROM FILE
@@ -701,12 +723,20 @@ def main():
     matched       = []
     skip_role     = 0
     skip_location = 0
+    skip_company  = 0
+    skip_closed   = 0
     for j in unique:
         if not is_relevant_role(j["title"]):
             skip_role += 1
             continue
         if not is_relevant_location(j["location"]):
             skip_location += 1
+            continue
+        if is_excluded_company(j.get("company", "")):
+            skip_company += 1
+            continue
+        if is_job_closed(j["title"], j.get("description", "")):
+            skip_closed += 1
             continue
         matched.append(j)
 
@@ -736,6 +766,8 @@ def main():
     print(f"📋 Total jobs scraped  : {len(unique)}")
     print(f"❌ Filtered (role)     : {skip_role}")
     print(f"❌ Filtered (location) : {skip_location}")
+    print(f"❌ Filtered (company)  : {skip_company}")
+    print(f"❌ Filtered (closed)   : {skip_closed}")
     print(f"✅ Matched for you     : {len(matched)}")
     print(f"{'━'*60}\n")
 
