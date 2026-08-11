@@ -246,6 +246,75 @@ def is_job_closed(title: str, description: str = "") -> bool:
     text = (title + " " + description).lower()
     return any(status in text for status in EXCLUDE_JOB_STATUS)
 
+def has_acceptable_experience(title: str, description: str = "", exp: str = "") -> bool:
+    """
+    Check if job requires 2-5 years of experience.
+    Returns True if:
+      - Explicitly mentions 2+, 3+, 4+, 5+ years
+      - Mentions 2-5, 3-5, 3-4 year ranges
+      - No experience mentioned at all (we'll apply)
+    Returns False if:
+      - Requires 6+ years, 7+ years, etc.
+      - Mentions "senior" level with high experience (handled by EXCLUDE_SENIORITY)
+      - Requires 10+ years or similar
+    """
+    # Combine all text sources
+    text = f"{title} {description} {exp}".lower()
+    
+    # Pattern 1: Check for explicit "X+ years" patterns
+    # Match: "3+ years", "2+ years", "5+ years"
+    import re
+    
+    # Find all patterns like "N+ years" or "N - N years"
+    exp_patterns = re.findall(r'(\d+)\s*\+\s*(?:years|yrs|year|yr)', text)
+    
+    # If found "2+", "3+", "4+", "5+" → acceptable
+    for match in exp_patterns:
+        years = int(match)
+        if years >= 2 and years <= 5:
+            return True  # Explicitly matches our range
+        elif years > 5:
+            return False  # Too senior (6+, 7+, 8+, etc.)
+    
+    # Pattern 2: Check for range patterns "3-5 years", "2 to 5 years"
+    range_patterns = re.findall(r'(\d+)\s*(?:-|to)\s*(\d+)\s*(?:years|yrs|year|yr)', text)
+    for min_exp, max_exp in range_patterns:
+        min_years = int(min_exp)
+        max_years = int(max_exp)
+        
+        # Accept if range overlaps with 2-5 years
+        # e.g., "3-5 years" ✅, "2-4 years" ✅, "1-3 years" ✅
+        # Reject if minimum is > 5, e.g., "6-8 years" ❌
+        if min_years > 5:
+            return False
+        # Reject if maximum is explicitly high and minimum is also high
+        # e.g., "5-7 years" borderline, but we'll be lenient
+        if min_years >= 5 and max_years > 6:
+            return False
+        # Otherwise acceptable
+        return True
+    
+    # Pattern 3: Check for standalone numbers like "5 years of experience"
+    standalone = re.findall(r'(?:^|\s)(\d+)\s*(?:years?|yrs?)\s+(?:of\s+)?(?:experience|exp)', text)
+    for match in standalone:
+        years = int(match)
+        if years > 5:
+            return False  # Too senior
+        if years >= 2 and years <= 5:
+            return True  # Perfect match
+    
+    # Pattern 4: Check for "minimum X years"
+    min_patterns = re.findall(r'(?:minimum|min|at least|minimum of)\s*(\d+)\s*(?:years?|yrs?)', text)
+    for match in min_patterns:
+        years = int(match)
+        if years > 5:
+            return False  # Requires too much experience
+        if years >= 2 and years <= 5:
+            return True  # Acceptable minimum
+    
+    # If no experience mentioned at all → we'll apply (entry-level or flexible)
+    return True
+
 # ──────────────────────────────────────────────────────
 # LOAD COMPANIES FROM FILE
 # ──────────────────────────────────────────────────────
@@ -307,13 +376,18 @@ def fetch_lever(slug: str) -> list:
             jobs = []
             for job in data:
                 posted = job.get("createdAt", 0)
+                # Extract description (plain text summary)
+                description = job.get("description", "")
+                if not description:
+                    description = job.get("descriptionPlain", "")
                 jobs.append({
-                    "title":    job.get("text", ""),
-                    "company":  slug.replace("-", " ").title(),
-                    "location": job.get("categories", {}).get("location", ""),
-                    "link":     job.get("hostedUrl", ""),
-                    "source":   "Lever",
-                    "posted":   datetime.fromtimestamp(posted/1000).strftime("%d %b %Y") if posted else "N/A"
+                    "title":       job.get("text", ""),
+                    "company":     slug.replace("-", " ").title(),
+                    "location":    job.get("categories", {}).get("location", ""),
+                    "link":        job.get("hostedUrl", ""),
+                    "source":      "Lever",
+                    "posted":      datetime.fromtimestamp(posted/1000).strftime("%d %b %Y") if posted else "N/A",
+                    "description": description[:1000]  # First 1000 chars for filtering
                 })
             return jobs
         except Exception:
@@ -337,13 +411,16 @@ def fetch_greenhouse(slug: str) -> list:
                 return []
             jobs = []
             for job in r.json().get("jobs", []):
+                # Extract description (Greenhouse has content field)
+                description = job.get("content", "")
                 jobs.append({
-                    "title":    job.get("title", ""),
-                    "company":  slug.replace("-", " ").title(),
-                    "location": job.get("location", {}).get("name", ""),
-                    "link":     job.get("absolute_url", ""),
-                    "source":   "Greenhouse",
-                    "posted":   job.get("updated_at", "")[:10]
+                    "title":       job.get("title", ""),
+                    "company":     slug.replace("-", " ").title(),
+                    "location":    job.get("location", {}).get("name", ""),
+                    "link":        job.get("absolute_url", ""),
+                    "source":      "Greenhouse",
+                    "posted":      job.get("updated_at", "")[:10],
+                    "description": description[:1000]  # First 1000 chars for filtering
                 })
             return jobs
         except Exception:
@@ -367,13 +444,16 @@ def fetch_ashby(slug: str) -> list:
                 return []
             jobs = []
             for job in r.json().get("jobs", []):
+                # Extract description from Ashby
+                description = job.get("description", "")
                 jobs.append({
-                    "title":    job.get("title", ""),
-                    "company":  slug.replace("-", " ").title(),
-                    "location": job.get("location", "") or "Remote",
-                    "link":     job.get("jobUrl", ""),
-                    "source":   "Ashby",
-                    "posted":   job.get("publishedAt", "")[:10] or "Recent"
+                    "title":       job.get("title", ""),
+                    "company":     slug.replace("-", " ").title(),
+                    "location":    job.get("location", "") or "Remote",
+                    "link":        job.get("jobUrl", ""),
+                    "source":      "Ashby",
+                    "posted":      job.get("publishedAt", "")[:10] or "Recent",
+                    "description": description[:1000]  # First 1000 chars for filtering
                 })
             return jobs
         except Exception:
@@ -726,6 +806,7 @@ def main():
     skip_location = 0
     skip_company  = 0
     skip_closed   = 0
+    skip_experience = 0
     for j in unique:
         if not is_relevant_role(j["title"]):
             skip_role += 1
@@ -738,6 +819,9 @@ def main():
             continue
         if is_job_closed(j["title"], j.get("description", "")):
             skip_closed += 1
+            continue
+        if not has_acceptable_experience(j["title"], j.get("description", ""), j.get("exp", "")):
+            skip_experience += 1
             continue
         matched.append(j)
 
@@ -763,13 +847,14 @@ def main():
     print(f"   🔵 Ashby      : {stats.get('ashby', 0)}")
     print(f"   🟠 Workday    : {stats.get('workday', 0)}")
     print(f"   ❌ Failed/404 : {stats.get('failed', 0)}")
-    print(f"\n⏱️  Fetch time          : {elapsed:.1f}s")
-    print(f"📋 Total jobs scraped  : {len(unique)}")
-    print(f"❌ Filtered (role)     : {skip_role}")
-    print(f"❌ Filtered (location) : {skip_location}")
-    print(f"❌ Filtered (company)  : {skip_company}")
-    print(f"❌ Filtered (closed)   : {skip_closed}")
-    print(f"✅ Matched for you     : {len(matched)}")
+    print(f"\n⏱️  Fetch time            : {elapsed:.1f}s")
+    print(f"📋 Total jobs scraped    : {len(unique)}")
+    print(f"❌ Filtered (role)       : {skip_role}")
+    print(f"❌ Filtered (location)   : {skip_location}")
+    print(f"❌ Filtered (company)    : {skip_company}")
+    print(f"❌ Filtered (closed)     : {skip_closed}")
+    print(f"❌ Filtered (experience) : {skip_experience}")
+    print(f"✅ Matched for you       : {len(matched)}")
     print(f"{'━'*60}\n")
 
     # ── Send new alerts ───────────────────────────────────────
