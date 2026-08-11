@@ -22,7 +22,6 @@ v11 Speed Improvements:
 
 import os, json, time, hashlib, requests, re, threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from naukri_scraper import scrape_naukri
 from datetime import datetime
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -765,27 +764,8 @@ def main():
     print(f"🔍 Fetching {len(companies)} companies with {MAX_WORKERS} parallel workers…\n")
     all_jobs, stats = fetch_all_companies(companies)
 
-    # ── SOURCE 5: Naukri ─────────────────────────────────────
-    print(f"\n🔴 SOURCE 5: Naukri (last 24 h | all target titles)…")
-    try:
-        naukri_jobs = scrape_naukri()
-        for j in naukri_jobs:
-            all_jobs.append({
-                "title":    j["title"],
-                "company":  j["company"],
-                "location": j["location"],
-                "link":     j["link"],
-                "source":   "Naukri",
-                "posted":   j.get("posted", "Today"),
-                "salary":   j.get("salary", ""),
-                "exp":      j.get("exp", ""),
-            })
-        print(f"  ✅ Naukri returned {len(naukri_jobs)} jobs")
-    except Exception as e:
-        print(f"  ⚠️  Naukri failed: {e}")
-
-    # ── SOURCE 6: Google CSE ──────────────────────────────────
-    print(f"\n🌐 SOURCE 6: Google CSE (last 24 h fresh postings)…")
+    # ── SOURCE 5: Google CSE ──────────────────────────────────
+    print(f"\n🌐 SOURCE 5: Google CSE (last 24 h fresh postings)…")
     try:
         cse_jobs = scrape_google()
         all_jobs += cse_jobs

@@ -52,8 +52,6 @@ jobs:
           GOOGLE_API_KEY:      ${{ secrets.GOOGLE_API_KEY }}
           GOOGLE_CSE_ID:       ${{ secrets.GOOGLE_CSE_ID }}
           SCRAPER_API_KEY:     ${{ secrets.SCRAPER_API_KEY }}
-          NAUKRI_EMAIL:        ${{ secrets.NAUKRI_EMAIL }}
-          NAUKRI_PASSWORD:     ${{ secrets.NAUKRI_PASSWORD }}
         run: python job_alert.py
 
       - name: 💾 Save seen_jobs.json (keeps ALL IDs — no deletion)
