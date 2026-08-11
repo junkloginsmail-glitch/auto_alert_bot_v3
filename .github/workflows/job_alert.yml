@@ -2,7 +2,7 @@ name: 🤖 AI Job Alert Bot
 
 on:
   schedule:
-    - cron: "0 */3 * * *"   # Every 3 hours (8 runs/day)
+    - cron: "0 */2 * * *"   # Every 2 hours (12 runs/day)
   workflow_dispatch:
 
 env:
