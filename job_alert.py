@@ -187,28 +187,37 @@ EXCLUDE_JOB_STATUS = [
 ]
 
 # ── Location filter ───────────────────────────────────
-ACCEPT_LOCATIONS = [
+# Priority 1: India-based jobs
+INDIA_LOCATIONS = [
     "india", "bangalore", "bengaluru", "pune", "hyderabad",
     "mumbai", "chennai", "delhi", "noida", "gurgaon",
     "kolkata", "ahmedabad", "kochi", "trivandrum",
-    "remote", "work from home", "wfh", "work-from-home",
-    "worldwide", "global", "anywhere",
-    "work from anywhere", "distributed",
-    "visa", "sponsor", "relocation", "",
-    # Japan/Korea — applicants can relocate / remote-open roles
-    "tokyo", "osaka", "seoul", "singapore",
 ]
 
+# Priority 2: Remote/Distributed (any country)
+REMOTE_KEYWORDS = [
+    "remote", "work from home", "wfh", "work-from-home",
+    "worldwide", "global", "anywhere", "distributed",
+    "work from anywhere",
+]
+
+# Priority 3: Visa sponsorship opportunities (relocation to any country)
+VISA_KEYWORDS = [
+    "visa", "sponsor", "relocation", "relocate",
+    "immigration support", "work permit",
+]
+
+# Priority 4: Asia-Pacific tech hubs (easy relocation/remote options)
+APAC_LOCATIONS = [
+    "tokyo", "osaka", "seoul", "singapore", "hong kong",
+    "taipei", "shanghai", "beijing", "bangkok", "kuala lumpur",
+]
+
+# BLOCK: Only block Pakistan and explicit onsite-only US/UK/EU roles
 BLOCK_LOCATIONS = [
-    "san francisco, ca", "new york, ny", "seattle, wa",
-    "austin, tx", "boston, ma", "los angeles, ca",
-    "mountain view, ca", "menlo park", "palo alto",
-    "london, uk", "london, england",
-    "toronto, on", "vancouver, bc",
-    "berlin, germany", "munich, germany",
-    "paris, france", "amsterdam, netherlands",
-    "lahore", "karachi", "islamabad",
-    "onsite - usa", "onsite - uk",
+    "lahore", "karachi", "islamabad", "rawalpindi", "faisalabad",
+    "onsite only - usa", "onsite only - uk", "onsite only - eu",
+    "us only (no remote)", "uk only (no remote)",
 ]
 
 def is_relevant_role(title: str) -> bool:
@@ -222,18 +231,48 @@ def is_relevant_role(title: str) -> bool:
     return True
 
 def is_relevant_location(location: str) -> bool:
+    """
+    Accept jobs if:
+      1. Located in India
+      2. Remote/worldwide/distributed (any country)
+      3. Mentions visa/sponsorship/relocation
+      4. Asia-Pacific tech hubs
+      5. Blank/empty location (we'll apply anyway)
+      6. Any other global location (US/EU/etc.) NOT explicitly blocked
+    
+    Block only:
+      - Pakistan cities
+      - Explicit "onsite only" for US/UK/EU (no remote)
+    """
     loc = location.lower().strip()
-    if any(b in loc for b in BLOCK_LOCATIONS):
+    
+    # Accept blank/empty locations
+    if not loc or loc == "":
+        return True
+    
+    # Block Pakistan and strict onsite-only roles
+    if any(blocked in loc for blocked in BLOCK_LOCATIONS):
         return False
-    if any(sig in loc for sig in ACCEPT_LOCATIONS):
+    
+    # Accept India
+    if any(city in loc for city in INDIA_LOCATIONS):
         return True
-    if "remote" in loc and not any(c in loc for c in [
-        "usa", "uk", "canada", "germany", "france",
-        "australia", "brazil", "ireland", "poland",
-        "spain", "portugal", "netherlands", "singapore",
-    ]):
+    
+    # Accept Remote/Worldwide/Distributed
+    if any(keyword in loc for keyword in REMOTE_KEYWORDS):
         return True
-    return False
+    
+    # Accept Visa/Sponsorship/Relocation
+    if any(keyword in loc for keyword in VISA_KEYWORDS):
+        return True
+    
+    # Accept APAC tech hubs
+    if any(city in loc for city in APAC_LOCATIONS):
+        return True
+    
+    # Accept all other global locations (US, EU, etc.)
+    # Unless they're explicitly "onsite only" (already blocked above)
+    return True
 
 def is_excluded_company(company: str) -> bool:
     """Check if company should be excluded (mass hirers, spam)"""
@@ -244,6 +283,55 @@ def is_job_closed(title: str, description: str = "") -> bool:
     """Check if job posting indicates it's closed"""
     text = (title + " " + description).lower()
     return any(status in text for status in EXCLUDE_JOB_STATUS)
+
+def is_posted_recently(posted_date: str, source: str = "") -> bool:
+    """
+    Check if job was posted within the last 24 hours.
+    Returns True if:
+      - Posted date is within last 24 hours
+      - Posted date is missing/empty (assume recent, don't filter out)
+      - Posted date says "Today", "Recent", "< 24h" etc.
+    Returns False if:
+      - Posted date is older than 24 hours
+    """
+    if not posted_date or posted_date in ["N/A", "", "Recent", "Today", "< 24h"]:
+        return True  # Assume recent if no date or marked as recent
+    
+    try:
+        # Try parsing different date formats
+        posted = None
+        
+        # Format 1: "dd MMM yyyy" (e.g., "11 Aug 2026")
+        try:
+            posted = datetime.strptime(posted_date, "%d %b %Y")
+        except:
+            pass
+        
+        # Format 2: "yyyy-mm-dd" (e.g., "2026-08-11")
+        if not posted:
+            try:
+                posted = datetime.strptime(posted_date[:10], "%Y-%m-%d")
+            except:
+                pass
+        
+        # Format 3: ISO format (e.g., "2026-08-11T10:30:00Z")
+        if not posted:
+            try:
+                posted = datetime.fromisoformat(posted_date.replace('Z', '+00:00').split('T')[0])
+            except:
+                pass
+        
+        # If we successfully parsed a date, check if it's within 24 hours
+        if posted:
+            hours_ago = (datetime.now() - posted).total_seconds() / 3600
+            return hours_ago <= 24
+        
+        # If we couldn't parse the date, assume it's recent (don't filter out)
+        return True
+        
+    except Exception:
+        # If any error occurs, assume recent (don't filter out good jobs)
+        return True
 
 def has_acceptable_experience(title: str, description: str = "", exp: str = "") -> bool:
     """
@@ -818,6 +906,7 @@ def main():
     skip_location = 0
     skip_company  = 0
     skip_closed   = 0
+    skip_old_jobs = 0
     skip_experience = 0
     for j in unique:
         if not is_relevant_role(j["title"]):
@@ -831,6 +920,9 @@ def main():
             continue
         if is_job_closed(j["title"], j.get("description", "")):
             skip_closed += 1
+            continue
+        if not is_posted_recently(j.get("posted", ""), j.get("source", "")):
+            skip_old_jobs += 1
             continue
         if not has_acceptable_experience(j["title"], j.get("description", ""), j.get("exp", "")):
             skip_experience += 1
@@ -865,6 +957,7 @@ def main():
     print(f"❌ Filtered (location)   : {skip_location}")
     print(f"❌ Filtered (company)    : {skip_company}")
     print(f"❌ Filtered (closed)     : {skip_closed}")
+    print(f"❌ Filtered (old >24h)   : {skip_old_jobs}")
     print(f"❌ Filtered (experience) : {skip_experience}")
     print(f"✅ Matched for you       : {len(matched)}")
     print(f"{'━'*60}\n")
