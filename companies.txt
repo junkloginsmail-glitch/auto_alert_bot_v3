@@ -337,7 +337,6 @@ whylabs
 workday:amazon
 workday:apple
 greenhouse:adobe
-greenhouse:accenture
 greenhouse:atlassian
 lever:amdocs
 greenhouse:airbnb
@@ -565,7 +564,6 @@ lever:hypertrack
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 workday:ibm
 workday:intel
-workday:infosys
 greenhouse:intuit
 greenhouse:informatica
 workday:infineon

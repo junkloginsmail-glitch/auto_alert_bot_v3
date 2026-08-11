@@ -2,7 +2,7 @@ name: 🤖 AI Job Alert Bot
 
 on:
   schedule:
-    - cron: "0 */2 * * *"   # Every 2 hours
+    - cron: "0 */3 * * *"   # Every 3 hours (8 runs/day)
   workflow_dispatch:
 
 env:
@@ -28,6 +28,22 @@ jobs:
         run: |
           pip install requests playwright playwright-stealth
           playwright install --with-deps chromium
+
+      - name: 📦 Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 🎭 Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
       - name: 🤖 Run Job Alert Bot
         env:
