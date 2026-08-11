@@ -318,6 +318,11 @@ def has_acceptable_experience(title: str, description: str = "", exp: str = "") 
 # LOAD COMPANIES FROM FILE
 # ──────────────────────────────────────────────────────
 def load_companies() -> list:
+    """
+    Load companies from file. Supports two formats:
+      1. Explicit: "ats:slug" (e.g., "greenhouse:openai")
+      2. Auto-detect: "slug" (tries lever, greenhouse, ashby, workday)
+    """
     if not os.path.exists(COMPANIES_FILE):
         print(f"❌ {COMPANIES_FILE} not found!")
         return []
@@ -328,12 +333,39 @@ def load_companies() -> list:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
+            
             if ":" in line:
+                # Explicit format: "ats:slug"
                 ats, slug = line.split(":", 1)
                 key = (ats.strip().lower(), slug.strip().lower())
-                if key not in seen_slugs:   # skip duplicates in file
+                if key not in seen_slugs:
                     seen_slugs.add(key)
                     companies.append(key)
+            else:
+                # Auto-detect format: try all ATS platforms for this slug
+                slug = line.strip().lower()
+                
+                # Try Lever
+                if ("lever", slug) not in seen_slugs:
+                    seen_slugs.add(("lever", slug))
+                    companies.append(("lever", slug))
+                
+                # Try Greenhouse
+                if ("greenhouse", slug) not in seen_slugs:
+                    seen_slugs.add(("greenhouse", slug))
+                    companies.append(("greenhouse", slug))
+                
+                # Try Ashby
+                if ("ashby", slug) not in seen_slugs:
+                    seen_slugs.add(("ashby", slug))
+                    companies.append(("ashby", slug))
+                
+                # Try Workday if it's in the tenants list
+                if slug in WORKDAY_TENANTS:
+                    if ("workday", slug) not in seen_slugs:
+                        seen_slugs.add(("workday", slug))
+                        companies.append(("workday", slug))
+    
     print(f"📋 Loaded {len(companies)} companies (deduped)")
     return companies
 
