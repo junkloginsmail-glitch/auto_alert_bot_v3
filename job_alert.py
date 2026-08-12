@@ -187,38 +187,59 @@ EXCLUDE_JOB_STATUS = [
 ]
 
 # ── Location filter ───────────────────────────────────
-# Priority 1: India-based jobs
+
+# ═══════════════════════════════════════════════════════════════════
+# CURRENT FILTER: Fast Hiring Focus (India + True Remote only)
+# ═══════════════════════════════════════════════════════════════════
+# Priority: Jobs with fast interview/hiring processes
+# - India jobs (remote, office, hybrid, WFH)
+# - Global remote/distributed roles (any country)
+# - Excludes: Foreign onsite roles (slow visa/relocation process)
+
 INDIA_LOCATIONS = [
     "india", "bangalore", "bengaluru", "pune", "hyderabad",
     "mumbai", "chennai", "delhi", "noida", "gurgaon",
     "kolkata", "ahmedabad", "kochi", "trivandrum",
 ]
 
-# Priority 2: Remote/Distributed (any country)
 REMOTE_KEYWORDS = [
     "remote", "work from home", "wfh", "work-from-home",
     "worldwide", "global", "anywhere", "distributed",
     "work from anywhere",
 ]
 
-# Priority 3: Visa sponsorship opportunities (relocation to any country)
-VISA_KEYWORDS = [
-    "visa", "sponsor", "relocation", "relocate",
-    "immigration support", "work permit",
+# Block foreign onsite cities (require relocation/visa - slow process)
+FOREIGN_ONSITE_CITIES = [
+    # US cities
+    "san francisco", "new york", "seattle", "austin", "boston",
+    "los angeles", "mountain view", "menlo park", "palo alto",
+    "sunnyvale", "santa clara", "cupertino", "san jose",
+    "chicago", "denver", "portland", "atlanta", "miami",
+    # EU cities
+    "london", "berlin", "paris", "amsterdam", "munich",
+    "dublin", "stockholm", "copenhagen", "zurich", "barcelona",
+    # Other regions
+    "toronto", "vancouver", "sydney", "melbourne",
 ]
 
-# Priority 4: Asia-Pacific tech hubs (easy relocation/remote options)
-APAC_LOCATIONS = [
-    "tokyo", "osaka", "seoul", "singapore", "hong kong",
-    "taipei", "shanghai", "beijing", "bangkok", "kuala lumpur",
-]
-
-# BLOCK: Only block Pakistan and explicit onsite-only US/UK/EU roles
-BLOCK_LOCATIONS = [
+PAKISTAN_CITIES = [
     "lahore", "karachi", "islamabad", "rawalpindi", "faisalabad",
-    "onsite only - usa", "onsite only - uk", "onsite only - eu",
-    "us only (no remote)", "uk only (no remote)",
 ]
+
+# ═══════════════════════════════════════════════════════════════════
+# FUTURE FILTER: Global + Visa Sponsorship (commented out for now)
+# ═══════════════════════════════════════════════════════════════════
+# Uncomment these when ready for visa sponsorship opportunities
+
+# VISA_KEYWORDS = [
+#     "visa", "sponsor", "relocation", "relocate",
+#     "immigration support", "work permit",
+# ]
+
+# APAC_LOCATIONS = [
+#     "tokyo", "osaka", "seoul", "singapore", "hong kong",
+#     "taipei", "shanghai", "beijing", "bangkok", "kuala lumpur",
+# ]
 
 def is_relevant_role(title: str) -> bool:
     t = title.lower()
@@ -232,17 +253,19 @@ def is_relevant_role(title: str) -> bool:
 
 def is_relevant_location(location: str) -> bool:
     """
-    Accept jobs if:
-      1. Located in India
-      2. Remote/worldwide/distributed (any country)
-      3. Mentions visa/sponsorship/relocation
-      4. Asia-Pacific tech hubs
-      5. Blank/empty location (we'll apply anyway)
-      6. Any other global location (US/EU/etc.) NOT explicitly blocked
+    CURRENT FILTER: Fast Hiring Priority
+    ──────────────────────────────────────
+    ✅ ACCEPT:
+      1. India (any type: remote, office, hybrid, WFH)
+      2. True remote/worldwide/distributed (any country)
+      3. Foreign cities IF marked as "remote" (e.g., "San Francisco (Remote)")
+      4. Blank/empty (we'll apply)
     
-    Block only:
+    ❌ REJECT:
+      - Foreign city onsite roles (US/EU/etc.) - require visa/relocation (slow)
       - Pakistan cities
-      - Explicit "onsite only" for US/UK/EU (no remote)
+    
+    Strategy: Focus on fast interview/hiring processes
     """
     loc = location.lower().strip()
     
@@ -250,29 +273,60 @@ def is_relevant_location(location: str) -> bool:
     if not loc or loc == "":
         return True
     
-    # Block Pakistan and strict onsite-only roles
-    if any(blocked in loc for blocked in BLOCK_LOCATIONS):
+    # BLOCK: Pakistan cities
+    if any(city in loc for city in PAKISTAN_CITIES):
         return False
     
-    # Accept India
+    # ACCEPT: India (remote, office, hybrid, WFH)
     if any(city in loc for city in INDIA_LOCATIONS):
         return True
     
-    # Accept Remote/Worldwide/Distributed
+    # ACCEPT: True remote/worldwide/distributed
     if any(keyword in loc for keyword in REMOTE_KEYWORDS):
         return True
     
-    # Accept Visa/Sponsorship/Relocation
-    if any(keyword in loc for keyword in VISA_KEYWORDS):
-        return True
+    # CONDITIONAL: Foreign cities - accept only if remote
+    if any(city in loc for city in FOREIGN_ONSITE_CITIES):
+        if any(keyword in loc for keyword in REMOTE_KEYWORDS):
+            return True  # Remote from foreign location is OK
+        else:
+            return False  # Onsite in foreign city - reject (slow visa process)
     
-    # Accept APAC tech hubs
-    if any(city in loc for city in APAC_LOCATIONS):
-        return True
-    
-    # Accept all other global locations (US, EU, etc.)
-    # Unless they're explicitly "onsite only" (already blocked above)
+    # Accept anything else not explicitly blocked
+    # (nearby countries like Singapore, Dubai with easier visa)
     return True
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FUTURE FILTER: When ready for global + visa sponsorship
+    # ═══════════════════════════════════════════════════════════════════
+    # Uncomment below and comment out above logic when ready
+    
+    # loc = location.lower().strip()
+    # 
+    # if not loc or loc == "":
+    #     return True
+    # 
+    # if any(blocked in loc for blocked in PAKISTAN_CITIES):
+    #     return False
+    # 
+    # # Accept India
+    # if any(city in loc for city in INDIA_LOCATIONS):
+    #     return True
+    # 
+    # # Accept Remote/Worldwide/Distributed
+    # if any(keyword in loc for keyword in REMOTE_KEYWORDS):
+    #     return True
+    # 
+    # # Accept Visa/Sponsorship/Relocation
+    # if any(keyword in loc for keyword in VISA_KEYWORDS):
+    #     return True
+    # 
+    # # Accept APAC tech hubs
+    # if any(city in loc for city in APAC_LOCATIONS):
+    #     return True
+    # 
+    # # Accept all other global locations (US, EU, etc.)
+    # return True
 
 def is_excluded_company(company: str) -> bool:
     """Check if company should be excluded (mass hirers, spam)"""
